@@ -1,11 +1,7 @@
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 import pandas as pd
 from pathlib import Path
 from torchvision.io import read_image
-
-data_dir = Path("data")
-annotations = pd.read_csv(data_dir / "metadata.csv")
-image_ids = annotations[annotations["split"] == "train"]["image_id"].values
 
 
 class LandcoverDataset(Dataset):
@@ -22,10 +18,10 @@ class LandcoverDataset(Dataset):
         return len(self.image_ids)
 
     def __getitem__(self, idx):
-        image_id = image_ids[idx]
+        image_id = self.image_ids[idx]
         # probably need to rescale the input values
-        sat_img = read_image(self.satimgs_dir / f"{image_id}_sat.jpg").float()
-        mask = read_image(self.masks_dir / f"{image_id}_mask.png").long()
+        sat_img = read_image(str(self.satimgs_dir / f"{image_id}_sat.jpg")).float()
+        mask = read_image(str(self.masks_dir / f"{image_id}_mask.png")).long()
 
         if self.transform is not None:
             sat_img = self.transform(sat_img)
