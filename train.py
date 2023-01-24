@@ -1,6 +1,5 @@
 import torch
 import torchvision
-import matplotlib.pyplot as plt
 import pandas as pd
 from torch import nn
 from torch.utils.data import DataLoader
@@ -8,11 +7,13 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from dataset import LandcoverDataset 
 from model import Unet
-
+from torchvision.transforms.functional import to_pil_image, resize
+import wandb
+import numpy as np
 
 torch.manual_seed(1)
 IN_KAGGLE = True
-LOGGING = False
+LOGGING = True
 
 
 if LOGGING:
@@ -84,7 +85,7 @@ if LOGGING:
     
 # training loop
 print("TRAINING :)")
-model.train()
+MODEL.train()
 for epoch in range(EPOCHS):
     # forward pass
     pred = MODEL(X)
@@ -94,29 +95,51 @@ for epoch in range(EPOCHS):
     loss.backward()
     OPTIMIZER.step()
 
-    if epoch % 50 == 0:
+    if epoch % 20 == 0:
         print(f"loss: {loss.detach().item():>7f}  [{epoch:>5d}/{EPOCHS:>5d}]")
-        
-    metrics = {
-        "train/train_loss": loss.detach().item(), 
-        "train/epoch": epoch
-    }
-    if LOGGING:
-        wandb.log(metrics)
+        metrics = {
+            "train/train_loss": loss.detach().item(), 
+            "train/epoch": epoch
+        }
+        if LOGGING:
+            wandb.log(metrics)
     
 # predictions
 with torch.no_grad():
     preds = MODEL(X)
 dis_preds = torch.argmax(preds, 1)
-n_pixels = torch.bincount(dis_preds.view(-1), minlength=7).tolist()
 
+if LOGGING:
+    class_labels = {
+        0: 'urban_land',
+        1: 'agriculture_land',
+        2: 'rangeland',
+        3: 'forest_land',
+        4: 'water',
+        5: 'barren_land',
+        6: 'unknown'
+    }
+    
+    table = wandb.Table(columns=["Image"])
+    for i in range(BATCH_SIZE):
+        image = np.array(to_pil_image(resize(X[i].type(torch.uint8), 324)))
+        target = y[i].to("cpu").numpy()
+        pred = dis_preds[i].to("cpu").numpy()
+        wandb_img = wandb.Image(
+            image,
+            masks={
+                "predictions": {
+                    "mask_data": pred,
+                    "class_labels": class_labels
+                },
+                "ground_truth": {
+                    "mask_data": target,
+                    "class_labels": class_labels
+                }
+            }
+        )
+        table.add_data(wandb_img)
 
-# log predictions
-
-# table = wandb.Table(columns=["pred", "target"] +[f"n_pixels_class_{i}" for i in range(7)])
-# for i in range(BATCH_SIZE):
-#     table.add_data()
-# for img, pred, targ, prob in zip(images.to("cpu"), predicted.to("cpu"), labels.to("cpu"), probs.to("cpu")):
-#     table.add_data(wandb.Image(img[0].numpy()*255), pred, targ, *prob.numpy())
-# wandb.log({"predictions_table":table}, commit=False)
+    wandb.log({"Predictions": table})
+    wandb.finish()
     
