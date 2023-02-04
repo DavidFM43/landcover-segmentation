@@ -1,14 +1,13 @@
 #!/bin/bash
 
-
 # run dataset
-bash upload_script.sh dataset.py
+bash upload_script.sh src/dataset.py
 kaggle kernels push
 # run model
-bash upload_script.sh model.py
+bash upload_script.sh src/model.py
 kaggle kernels push
 # run utils
-bash upload_script.sh utils.py
+bash upload_script.sh src/utils.py
 kaggle kernels push
 
 break1=false
@@ -21,7 +20,7 @@ do
     utils_run=$(kaggle kernels status davidfmora/utils)
 
     if echo "$model_run" | grep -q "complete" && echo "$dataset_run" | grep -q "complete" && echo "$utils_run" | grep -q "complete"; then
-        bash upload_script.sh train.py
+        bash upload_script.sh src/train.py
         kaggle kernels push
         rm kernel-metadata.json
         break1=true
@@ -59,4 +58,3 @@ do
     fi
      
 done
-

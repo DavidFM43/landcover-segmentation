@@ -1,7 +1,8 @@
 #!/bin/bash
 
 script_name=$1
-file_stem=${script_name%.*}
+file_name=$(basename "$script_name")
+file_stem=${file_name%.*}
 
 if [ "$file_stem" == "train" ]; then
 json='{

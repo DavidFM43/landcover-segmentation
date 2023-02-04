@@ -47,7 +47,7 @@ train_ids, test_ids = train_test_split(
 
 # training params
 BATCH_SIZE = 4
-EPOCHS = 200
+EPOCHS = 500
 MODEL = Unet().to(device)
 OPTIMIZER = torch.optim.Adam(MODEL.parameters())
 LOSS_FN = nn.CrossEntropyLoss()
@@ -59,14 +59,14 @@ train_dataset = LandcoverDataset(
     transformed_masks_path,
     train_ids,
     transform=torchvision.transforms.Resize(RESIZE_RES),
-    target_transform=torchvision.transforms.Resize(RESIZE_RES)
+    target_transform=torchvision.transforms.Resize(RESIZE_RES),
 )
 test_dataset = LandcoverDataset(
     train_dir,
     transformed_masks_path,
     test_ids,
     transform=torchvision.transforms.Resize(RESIZE_RES),
-    target_transform=torchvision.transforms.Resize(RESIZE_RES)
+    target_transform=torchvision.transforms.Resize(RESIZE_RES),
 )
 
 # create dataloaders
@@ -82,7 +82,7 @@ if LOGGING:
             "batch_size": BATCH_SIZE,
             "resize_res": RESIZE_RES,
             "optimizer": type(OPTIMIZER).__name__,
-            "loss_fn": type(LOSS_FN).__name__
+            "loss_fn": type(LOSS_FN).__name__,
         },
     )
 
@@ -96,7 +96,7 @@ if LOGGING:
     wandb.watch(MODEL, log_freq=10)
 
 for epoch in range(EPOCHS):
-    #for X, y in train_dataloader:
+    # for X, y in train_dataloader:
     #    X, y = X.to(device), y.to(device)
     # forward pass
     pred = MODEL(X)
@@ -120,11 +120,13 @@ dis_preds = torch.argmax(preds, 1)
 
 if LOGGING:
     for i in range(BATCH_SIZE):
-        image = (X[i] * 255).type(torch.uint8).to("cpu") 
+        image = (X[i] * 255).type(torch.uint8).to("cpu")
         target = mask_to_img(y[i].to("cpu"), class_colors)
         pred = mask_to_img(dis_preds[i].to("cpu"), class_colors)
         imgs = make_grid([image, target, pred])
-        
-        wandb.log({f"image_{i}": wandb.Image(to_pil_image(imgs), caption="sat/gt/pred")})
-        
+
+        wandb.log(
+            {f"image_{i}": wandb.Image(to_pil_image(imgs), caption="sat/gt/pred")}
+        )
+
     wandb.finish()

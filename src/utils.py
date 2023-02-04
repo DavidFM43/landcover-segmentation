@@ -43,6 +43,7 @@ def ohe_mask(mask, num_classes):
         (2, 0, 1),
     )
 
+
 def mask_to_img(mask, class_colors):
     num_classes = len(class_colors)
     return draw_segmentation_masks(
