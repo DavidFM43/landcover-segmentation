@@ -47,10 +47,9 @@ train_ids, test_ids = train_test_split(
 
 # training params
 BATCH_SIZE = 4
-LR = 0.01
 EPOCHS = 200
 MODEL = Unet().to(device)
-OPTIMIZER = torch.optim.SGD(MODEL.parameters(), lr=LR)
+OPTIMIZER = torch.optim.Adam(MODEL.parameters())
 LOSS_FN = nn.CrossEntropyLoss()
 RESIZE_RES = 512
 
@@ -81,7 +80,6 @@ if LOGGING:
         config={
             "epochs": EPOCHS,
             "batch_size": BATCH_SIZE,
-            "lr": LR,
             "resize_res": RESIZE_RES,
             "optimizer": type(OPTIMIZER).__name__,
             "loss_fn": type(LOSS_FN).__name__
