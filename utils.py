@@ -1,9 +1,9 @@
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
+from torchvision.utils import draw_segmentation_masks
 import matplotlib.pyplot as plt
 import numpy as np
-
 
 plt.rcParams["savefig.bbox"] = "tight"
 
@@ -41,4 +41,13 @@ def ohe_mask(mask, num_classes):
     return torch.permute(
         F.one_hot(mask.type(torch.long), num_classes=num_classes).type(torch.bool),
         (2, 0, 1),
+    )
+
+def mask_to_img(mask, class_colors):
+    num_classes = len(class_colors)
+    return draw_segmentation_masks(
+        torch.zeros((3, mask.shape[-1], mask.shape[-1]), dtype=torch.uint8),
+        ohe_mask(mask, num_classes),
+        alpha=1,
+        colors=class_colors,
     )

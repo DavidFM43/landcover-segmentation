@@ -8,7 +8,7 @@ def double_conv(in_channels, out_channels):
     """3x3Conv -> ReLU -> 3x3Conv ->ReLU"""
     conv = nn.Sequential(
         nn.Conv2d(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=3, bias=True
+            in_channels=in_channels, out_channels=out_channels, kernel_size=3, bias=True, padding=1
         ),
         nn.ReLU(inplace=True),
         nn.Conv2d(
@@ -16,6 +16,7 @@ def double_conv(in_channels, out_channels):
             out_channels=out_channels,
             kernel_size=3,
             bias=True,
+            padding=1
         ),
         nn.ReLU(inplace=True),
     )
