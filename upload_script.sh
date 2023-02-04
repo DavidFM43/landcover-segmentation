@@ -38,7 +38,10 @@ json='{
   "keywords": [
     "util-script"
   ],
-  "dataset_sources": [],
+  "dataset_sources": [
+    "balraj98/deepglobe-land-cover-classification-dataset", 
+    "davidfmora/processed-masks"
+  ],
   "competition_sources": [],
   "kernel_sources": []
 }'
