@@ -20,7 +20,8 @@ json='{
   "competition_sources": [],
   "kernel_sources": [
     "davidfmora/dataset",
-    "davidfmora/model"
+    "davidfmora/model",
+    "davidfmora/utils"
   ]
 }'
 else 
