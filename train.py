@@ -1,20 +1,21 @@
 import torch
 import torchvision
 import pandas as pd
+import wandb
+import numpy as np
 from torch import nn
 from torch.utils.data import DataLoader
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from dataset import LandcoverDataset 
+from dataset import LandcoverDataset
 from model import Unet
+from utils import mask_to_img
 from torchvision.transforms.functional import to_pil_image, resize
-import wandb
-import numpy as np
+from torchvision.utils import make_grid
 
 torch.manual_seed(1)
 IN_KAGGLE = True
 LOGGING = True
-
 
 if LOGGING:
     wandb.login(key="5f5a6e6618ddafd57c6c7b40a8313449bfd7a04e")
@@ -25,68 +26,80 @@ if IN_KAGGLE:
 else:
     data_dir = Path("data")
     masks_dir = Path("data")
-    
-print("READING PATHS")
+
+# TODO: refactor this part
+# paths and device
 train_dir = data_dir / "train"
 transformed_masks_path = masks_dir / "train_masks"
 annotations = pd.read_csv(data_dir / "metadata.csv")
+classes = pd.read_csv(data_dir / "class_dict.csv")
 image_ids = annotations[annotations["split"] == "train"]["image_id"].values
 device = "cuda" if torch.cuda.is_available() else "cpu"
+class_to_rgb = {}
+for idx, row in classes.iterrows():
+    class_to_rgb[row[0]] = row[1:].to_list()
+class_colors = [tuple(x) for x in class_to_rgb.values()]
 
 # split in train and test sets
 train_ids, test_ids = train_test_split(
     image_ids, train_size=0.8, shuffle=True, random_state=42
 )
 
-print("CREATING DATASETS")
-# create datasets
+# training params
+BATCH_SIZE = 4
+LR = 0.01
+EPOCHS = 200
+MODEL = Unet().to(device)
+OPTIMIZER = torch.optim.SGD(MODEL.parameters(), lr=LR)
+LOSS_FN = nn.CrossEntropyLoss()
+RESIZE_RES = 512
+
+# datasets
 train_dataset = LandcoverDataset(
     train_dir,
     transformed_masks_path,
     train_ids,
-    transform=torchvision.transforms.Resize(512),
-    augmentations=torchvision.transforms.Resize(324),
+    transform=torchvision.transforms.Resize(RESIZE_RES),
+    target_transform=torchvision.transforms.Resize(RESIZE_RES)
 )
 test_dataset = LandcoverDataset(
     train_dir,
     transformed_masks_path,
     test_ids,
-    transform=torchvision.transforms.Resize(512),
-    augmentations=torchvision.transforms.Resize(324),
+    transform=torchvision.transforms.Resize(RESIZE_RES),
+    target_transform=torchvision.transforms.Resize(RESIZE_RES)
 )
-
-
-print("CREATING PARAMS")
-# training params
-BATCH_SIZE = 2
-LR = 0.001
-EPOCHS = 100
-MODEL = Unet().to(device)
-OPTIMIZER = torch.optim.SGD(MODEL.parameters(), lr=LR)
-LOSS_FN = nn.CrossEntropyLoss()
 
 # create dataloaders
 train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=False)
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-print("LOADING BATCH")
-X, y = next(iter(train_dataloader))
-X, y = X.to(device), y.to(device)
-lossi = []
-
+# log training and data config
 if LOGGING:
     wandb.init(
-            project="landcover-segmentation",
-            config={
-                "epochs": EPOCHS,
-                "batch_size": BATCH_SIZE,
-                "lr": LR,
-                })
-    
+        project="landcover-segmentation",
+        config={
+            "epochs": EPOCHS,
+            "batch_size": BATCH_SIZE,
+            "lr": LR,
+            "resize_res": RESIZE_RES,
+            "optimizer": type(OPTIMIZER).__name__,
+            "loss_fn": type(LOSS_FN).__name__
+        },
+    )
+
+
 # training loop
-print("TRAINING :)")
+X, y = next(iter(train_dataloader))
+X, y = X.to(device), y.to(device)
 MODEL.train()
+
+if LOGGING:
+    wandb.watch(MODEL, log_freq=10)
+
 for epoch in range(EPOCHS):
+    #for X, y in train_dataloader:
+    #    X, y = X.to(device), y.to(device)
     # forward pass
     pred = MODEL(X)
     loss = LOSS_FN(pred, y)
@@ -97,49 +110,23 @@ for epoch in range(EPOCHS):
 
     if epoch % 20 == 0:
         print(f"loss: {loss.detach().item():>7f}  [{epoch:>5d}/{EPOCHS:>5d}]")
-        metrics = {
-            "train/train_loss": loss.detach().item(), 
-            "train/epoch": epoch
-        }
-        if LOGGING:
-            wandb.log(metrics)
-    
+
+    if LOGGING:
+        metrics = {"train/train_loss": loss.detach().item()}
+        wandb.log(metrics, step=epoch)
+
 # predictions
 with torch.no_grad():
     preds = MODEL(X)
 dis_preds = torch.argmax(preds, 1)
 
 if LOGGING:
-    class_labels = {
-        0: 'urban_land',
-        1: 'agriculture_land',
-        2: 'rangeland',
-        3: 'forest_land',
-        4: 'water',
-        5: 'barren_land',
-        6: 'unknown'
-    }
-    
-    table = wandb.Table(columns=["Image"])
     for i in range(BATCH_SIZE):
-        image = np.array(to_pil_image(resize(X[i].type(torch.uint8), 324)))
-        target = y[i].to("cpu").numpy()
-        pred = dis_preds[i].to("cpu").numpy()
-        wandb_img = wandb.Image(
-            image,
-            masks={
-                "predictions": {
-                    "mask_data": pred,
-                    "class_labels": class_labels
-                },
-                "ground_truth": {
-                    "mask_data": target,
-                    "class_labels": class_labels
-                }
-            }
-        )
-        table.add_data(wandb_img)
-
-    wandb.log({"Predictions": table})
+        image = (X[i] * 255).type(torch.uint8).to("cpu") 
+        target = mask_to_img(y[i].to("cpu"), class_colors)
+        pred = mask_to_img(dis_preds[i].to("cpu"), class_colors)
+        imgs = make_grid([image, target, pred])
+        
+        wandb.log({f"image_{i}": wandb.Image(to_pil_image(imgs), caption="sat/gt/pred")})
+        
     wandb.finish()
-    
