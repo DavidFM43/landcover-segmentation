@@ -45,6 +45,7 @@ def ohe_mask(mask, num_classes):
 
 
 def mask_to_img(mask, class_colors):
+    """Turns a segmentation mask tensor with indices to and RGB tensor image"""
     num_classes = len(class_colors)
     return draw_segmentation_masks(
         torch.zeros((3, mask.shape[-1], mask.shape[-1]), dtype=torch.uint8),
