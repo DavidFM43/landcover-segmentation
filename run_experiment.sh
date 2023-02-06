@@ -29,22 +29,25 @@ do
 
     elif echo "$model_run" | grep -q "error"; then
         echo "***Model run failed***"
+        echo ""
         kaggle kernels output davidfmora/model -q 
-        cat model.log | grep -v "wandb" | grep -v "stdout"
+        grep "stderr" model.log | perl -ne 'print "$1\n" if /"data":"([^"]+)"/'
         rm model.log
         exit
 
     elif echo "$dataset_run" | grep -q "error"; then
         echo "***Dataset run failed***"
+        echo ""
         kaggle kernels output davidfmora/dataset -q 
-        cat dataset.log | grep -v "wandb" | grep -v "stdout"
+        grep "stderr" dataset.log | perl -ne 'print "$1\n" if /"data":"([^"]+)"/'
         rm dataset.log
         exit
 
     elif echo "$utils_run" | grep -q "error"; then
         echo "***Utils run failed***"
+        echo ""
         kaggle kernels output davidfmora/utils -q 
-        cat utils.log | grep -v "wandb" | grep -v "stdout"
+        grep "stderr" utils.log | perl -ne 'print "$1\n" if /"data":"([^"]+)"/'
         rm utils.log
         exit
 
@@ -61,18 +64,18 @@ do
 
     if echo "$train_run" | grep -q "complete"; then
         echo "***Experiment complete***"
-        echo "***Collecting output***"
+        echo ""
         kaggle kernels output davidfmora/train -q
-        cat train.log | grep "stdout"
-        echo "***WANDB run info:***"
-        cat train.log | grep "Synced"
+        grep "stdout" train.log | perl -ne 'print "$1\n" if /"data":"([^"]+)"/'
+        echo ""
+        perl -ne 'print "$1\n" if /"data":"([^"]+)"/' train.log | grep "Synced"
         break2=true
 
     elif echo "$train_run" | grep -q "error"; then
         echo "***Experiment failed***"
-        echo "***Colleting logs***"
-        kaggle kernels output davidfmora/train -q 
-        cat train.log | grep -v "wandb" | grep -v "stdout"
+        echo ""
+        kaggle kernels output davidfmora/train -q
+        grep "stderr" train.log | perl -ne 'print "$1\n" if /"data":"([^"]+)"/'
         break2=true
     fi
      
