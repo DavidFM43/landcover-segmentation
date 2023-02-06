@@ -14,6 +14,8 @@ from utils import mask_to_img
 
 
 torch.manual_seed(1)
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
 LOGGING = True
 
 
@@ -63,19 +65,15 @@ if LOGGING:
             "loss_fn": type(LOSS_FN).__name__,
         },
     )
-
-
-# training loop
-X, y = next(iter(train_dataloader))
-X, y = X.to(device), y.to(device)
-MODEL.train()
-
-if LOGGING:
+    # record model gradients
     wandb.watch(MODEL, log_freq=10)
 
+X, y = next(iter(train_dataloader))
+X, y = X.to(device), y.to(device)
+
+# training loop
+MODEL.train()
 for epoch in range(EPOCHS):
-    # for X, y in train_dataloader:
-    #    X, y = X.to(device), y.to(device)
     # forward pass
     pred = MODEL(X)
     loss = LOSS_FN(pred, y)
