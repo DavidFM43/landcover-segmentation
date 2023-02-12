@@ -8,7 +8,7 @@ DeepGlobe LandCover Satellite Image Segmentation Challenge
 API credentials in your machine, for more information check out the README of this 
 [repository](https://github.com/Kaggle/kaggle-api).
 
-After that just run the `run_kaggle.py` script.
+After that just run the `train_kaggle.py` script.
 ```bash
-python3 run_kaggle.py
+python3 train_kaggle.py
 ```

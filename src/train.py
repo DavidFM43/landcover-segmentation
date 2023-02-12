@@ -17,7 +17,7 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
 # logging
-wandb_log = True
+wandb_log = False
 # data
 resize_red = 512
 batch_size = 4
