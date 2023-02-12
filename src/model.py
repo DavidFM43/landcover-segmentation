@@ -4,6 +4,7 @@ from torch import nn
 from torchvision.transforms.functional import center_crop
 
 
+# TODO: Implement kaimming initialization
 def double_conv(in_channels, out_channels):
     """3x3Conv -> ReLU -> 3x3Conv ->ReLU"""
     conv = nn.Sequential(

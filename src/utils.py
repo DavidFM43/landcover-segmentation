@@ -37,10 +37,11 @@ def preprocess_mask(mask, class_colors):
 
 
 def ohe_mask(mask, num_classes):
-    """Turns a label tensor of shape(H, W) to (num_classes, H, W)"""
+    """Turns a integer tensor of shape (H, W) to boolean tensor of shape (num_classes, H, W)"""
+    dims_p = (2, 0, 1) if mask.ndim == 2 else (0, 3, 1, 2)
     return torch.permute(
         F.one_hot(mask.type(torch.long), num_classes=num_classes).type(torch.bool),
-        (2, 0, 1),
+        dims_p,
     )
 
 
