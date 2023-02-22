@@ -14,15 +14,15 @@ python3 train_kaggle.py
 ```
 ### TODO:
 
-[ ] Log gradient statistics, updated/activations ratio.
-[ ] Add batchnorm layers to the Unet
-[ ] Implement dice loss
-[ ] Add weights to the CE loss 
-[ ] Try using upsampling instead of transpose convolutions
-[ ] Normalize color channels when preprocessing
-[ ] Tune the optimizer
-[ ] Try using 2 T4 intead of 1 P100
-[ ] Half precision
-[ ] Tiling
-[ ] What is the best resize resolution
-[ ] Augmentations
+- [ ] Log gradient statistics, updated/activations ratio.
+- [ ] Add batchnorm layers to the Unet
+- [ ] Implement dice loss
+- [ ] Add weights to the CE loss 
+- [ ] Try using upsampling instead of transpose convolutions
+- [ ] Normalize color channels when preprocessing
+- [ ] Tune the optimizer
+- [ ] Try using 2 T4 intead of 1 P100
+- [ ] Half precision
+- [ ] Tiling
+- [ ] What is the best resize resolution
+- [ ] Augmentations
