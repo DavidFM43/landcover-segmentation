@@ -1,23 +1,6 @@
 import torch
 import torch.nn.functional as F
-import torchvision.transforms as T
 from torchvision.utils import draw_segmentation_masks
-import matplotlib.pyplot as plt
-import numpy as np
-
-plt.rcParams["savefig.bbox"] = "tight"
-
-
-def show(imgs):
-    """Helper function to show images in the torch format"""
-    if not isinstance(imgs, list):
-        imgs = [imgs]
-    fig, axs = plt.subplots(ncols=len(imgs), squeeze=False, figsize=(100, 100))
-    for i, img in enumerate(imgs):
-        img = img.detach()
-        img = T.functional.to_pil_image(img)
-        axs[0, i].imshow(np.asarray(img))
-        axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
 
 
 def rgb_to_label(mask, class_colors):
