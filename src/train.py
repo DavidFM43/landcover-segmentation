@@ -8,15 +8,15 @@ from tqdm import tqdm
 
 from dataset import LandcoverDataset, class_names, class_labels
 from model import Unet
-from utils import ohe_mask
+from utils import label_to_onehot
 
 
 # reproducibility
 torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
-
-wandb_log = True  # wandb logging
+wandb_log = True
+# data
 resize_res = 512
 batch_size = 5
 epochs = 5
@@ -86,8 +86,8 @@ for epoch in range(1, epochs + 1):
             # calculate predictions per class
             with torch.no_grad():
                 pred = torch.argmax(logits, 1)
-                ohe_pred = ohe_mask(pred, num_classes=7)
-                ohe_y = ohe_mask(y, num_classes=7)
+                ohe_pred = label_to_onehot(pred, num_classes=7)
+                ohe_y = label_to_onehot(y, num_classes=7)
                 n += torch.stack(
                     [
                         (ohe_pred & ohe_y[:, c].unsqueeze(1)).sum(dim=[0, 2, 3])
@@ -145,8 +145,8 @@ for epoch in range(1, epochs + 1):
                     val_loss += loss.item()
                     # calculate predictions per class
                     pred = torch.argmax(logits, 1)
-                    ohe_pred = ohe_mask(pred, num_classes=7)
-                    ohe_y = ohe_mask(y, num_classes=7)
+                    ohe_pred = label_to_onehot(pred, num_classes=7)
+                    ohe_y = label_to_onehot(y, num_classes=7)
                     n += torch.stack(
                         [
                             (ohe_pred & ohe_y[:, c].unsqueeze(1)).sum(dim=[0, 2, 3])
