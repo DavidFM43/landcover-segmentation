@@ -25,3 +25,4 @@ python3 train_kaggle.py
 [ ] Half precision
 [ ] Tiling
 [ ] What is the best resize resolution
+[ ] Augmentations

@@ -28,6 +28,7 @@ train_ids, test_ids = train_test_split(
 # class rgb values
 class_colors = [tuple(row[1:].tolist()) for _, row in classes.iterrows()]
 class_names = classes["name"].tolist()
+class_labels = {idx: name for idx, name in enumerate(class_names)}
 
 
 class LandcoverDataset(Dataset):
