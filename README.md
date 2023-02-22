@@ -26,3 +26,7 @@ python3 train_kaggle.py
 - [ ] Tiling
 - [ ] What is the best resize resolution
 - [ ] Augmentations
+
+### Questions
+
+- [ ] ¿What are the key difference between pixel accuracy and IoU?
