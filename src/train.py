@@ -33,10 +33,8 @@ transform_args = dict(
 )
 train_dataset = LandcoverDataset(train=True, **transform_args)
 valid_dataset = LandcoverDataset(train=False, **transform_args)
-
-# TODO: Try setting pin_memory to true in order to speed up training
 loader_args = dict(
-    batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=False, shuffle=True
+    batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True, shuffle=True
 )
 train_dataloader = DataLoader(train_dataset, **loader_args)
 valid_dataloader = DataLoader(valid_dataset, **loader_args)
