@@ -2,9 +2,9 @@ import torch
 import torchvision
 from torch import nn
 from torch.utils.data import DataLoader
-
-import wandb
 from tqdm import tqdm
+import os
+import wandb
 
 from dataset import LandcoverDataset, class_names, class_labels
 from model import Unet
@@ -35,8 +35,9 @@ train_dataset = LandcoverDataset(train=True, **transform_args)
 valid_dataset = LandcoverDataset(train=False, **transform_args)
 
 # TODO: Try setting pin_memory to true in order to speed up training
-# TODO: Play around with num_workers
-loader_args = dict(batch_size=batch_size, num_workers=0, pin_memory=False, shuffle=True)
+loader_args = dict(
+    batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=False, shuffle=True
+)
 train_dataloader = DataLoader(train_dataset, **loader_args)
 valid_dataloader = DataLoader(valid_dataset, **loader_args)
 
@@ -53,6 +54,7 @@ if wandb_log:
             optimizer=type(optimizer).__name__,
             loss_fn=type(loss_fn).__name__,
             model=type(model).__name__,
+            num_workers=os.cpu_count(),
         ),
     )
     wandb.watch(model, log_freq=10)  # record model gradients
