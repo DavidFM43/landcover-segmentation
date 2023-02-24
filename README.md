@@ -14,10 +14,10 @@ python3 train_kaggle.py
 ```
 ### TODO:
 
-- [ ] Log gradient statistics, updated/activations ratio.
-- [ ] Add batchnorm layers to the Unet
 - [ ] Implement dice loss
 - [ ] Add weights to the CE loss 
+- [ ] Log gradient statistics, updated/activations ratio.
+- [ ] Add batchnorm layers to the Unet
 - [ ] Try using upsampling instead of transpose convolutions
 - [ ] Normalize color channels when preprocessing
 - [ ] Tune the optimizer
@@ -29,4 +29,5 @@ python3 train_kaggle.py
 
 ### Questions
 
-- [ ] ¿What are the key difference between pixel accuracy and IoU?
+- [x] ¿What are the key difference between per pixel accuracy and IoU?
+- [ ] ¿Why is Dice loss better than standard crossentropy?

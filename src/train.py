@@ -68,7 +68,6 @@ print(
 for epoch in range(1, epochs + 1):
     # nij is the number of pixels of class i predicted to belong to class j
     n = torch.zeros(7, 7)
-
     model.train()
     # training loop
     with tqdm(
@@ -83,32 +82,33 @@ for epoch in range(1, epochs + 1):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            # calculate predictions per class
+            ## calculate classifications per label
+            # transform both the predictions and targets to one hot encoding,
+            # perform an element-wise product between a fixed target class and
+            # all the class predictions, then sum over all the dims except for the
+            # class dim in order to get the clasifications of the fixed target class
             with torch.no_grad():
                 pred = torch.argmax(logits, 1)
                 ohe_pred = label_to_onehot(pred, num_classes=7)
                 ohe_y = label_to_onehot(y, num_classes=7)
                 n += torch.stack(
-                    [
-                        (ohe_pred & ohe_y[:, c].unsqueeze(1)).sum(dim=[0, 2, 3])
-                        for c in range(7)
-                    ]
+                    [(ohe_pred * ohe_y[:, [c]]).sum(dim=[0, 2, 3]) for c in range(7)]
                 ).cpu()
             # record train loss
             if wandb_log:
                 wandb.log({"train/loss": loss.item()})
-            # update pbar
+            # update progress bar
             pbar.update(X.shape[0])
             pbar.set_postfix(**{"loss (batch)": loss.item()})
 
         if wandb_log:
             with torch.no_grad():
                 tp = n.diag()  # true positives
-                fp = n.sum(1) - tp  # false positives
-                n_class = n.sum(1)  # total per class
+                fp = n.sum(0) - tp  # false positives
+                n_class = n.sum(1)  # total class gts
                 accuracy = tp / (n_class + 1e-5)
-                iou = tp / (n_class - tp + fp + 1e-5)
-            # log metrics avearge and per class
+                iou = tp / (n_class + fp + 1e-5)
+            # log metrics mean and per class
             wandb.log(
                 {
                     "epoch": epoch,
@@ -143,13 +143,17 @@ for epoch in range(1, epochs + 1):
                     logits = model(X)
                     loss = loss_fn(logits, y)
                     val_loss += loss.item()
-                    # calculate predictions per class
+                    ## calculate classifications per label
+                    # transform both the predictions and targets to one hot encoding,
+                    # perform an element-wise product between a fixed target class and
+                    # all the class predictions, then sum over all the dims except for the
+                    # class dim in order to get the clasifications of the fixed target class
                     pred = torch.argmax(logits, 1)
                     ohe_pred = label_to_onehot(pred, num_classes=7)
                     ohe_y = label_to_onehot(y, num_classes=7)
                     n += torch.stack(
                         [
-                            (ohe_pred & ohe_y[:, c].unsqueeze(1)).sum(dim=[0, 2, 3])
+                            (ohe_pred * ohe_y[:, [c]]).sum(dim=[0, 2, 3])
                             for c in range(7)
                         ]
                     ).cpu()
@@ -174,13 +178,11 @@ for epoch in range(1, epochs + 1):
                     pbar.update(X.shape[0])
             val_loss /= len(valid_dataloader)
         if wandb_log:
-            # TODO: Don't consider the unknown class for evaluation
-            with torch.no_grad():
-                tp = n.diag()  # true positives
-                fp = n.sum(1) - tp  # false positives
-                n_class = n.sum(1)  # total predictions per class
-                accuracy = tp / (n_class + 1e-5)
-                iou = tp / (n_class - tp + fp + 1e-5)
+            tp = n.diag()  # true positives
+            fp = n.sum(0) - tp  # false positives
+            n_class = n.sum(1)  # total class gts
+            accuracy = tp / (n_class + 1e-5)
+            iou = tp / (n_class + fp + 1e-5)
             # log metrics avearge and per class
             wandb.log(
                 {

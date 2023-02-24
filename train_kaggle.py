@@ -33,7 +33,6 @@ def run_script(script, data=[], scripts=[], gpu=False, util=False):
     }
     with open("kernel-metadata.json", "w") as file:
         json.dump(metadata, file)
-
     # wait for the secondary scripts to run before running the main script
     if scripts:
         print("\nWaiting for secondary scripts to finish running.")
@@ -48,10 +47,7 @@ def run_script(script, data=[], scripts=[], gpu=False, util=False):
                     ",".join([scripts[idx] for idx, fail in enumerate(failed) if fail]),
                 )
                 return
-
-    # push kernel to kaggle
-    api.kernels_push_cli(os.getcwd())
-
+    api.kernels_push_cli(os.getcwd())  # push kernel to kaggle
     os.remove("kernel-metadata.json")
 
 
