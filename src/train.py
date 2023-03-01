@@ -19,13 +19,12 @@ wandb_log = True
 # data
 resize_res = 512
 batch_size = 5
-epochs = 5
+epochs = 20
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # init model and optimizer
 model = Unet()
 model.to(device)
 optimizer = torch.optim.Adam(model.parameters())
-loss_fn = nn.CrossEntropyLoss()
 # init datasets and dataloaders
 transform_args = dict(
     transform=torchvision.transforms.Resize(resize_res),
@@ -38,6 +37,16 @@ loader_args = dict(
 )
 train_dataloader = DataLoader(train_dataset, **loader_args)
 valid_dataloader = DataLoader(valid_dataset, **loader_args)
+
+# count the classes of the training data to add weights to the loss function
+weights = torch.zeros((7,))
+with tqdm(total=len(train_dataset), desc="Class counts", unit="img") as pbar:
+    for _, y in train_dataloader:
+        weights += torch.bincount(y.view(-1), minlength=7)
+        pbar.update(len(y))
+weights = weights.to(device)
+weights = 1 - weights / weights.sum()
+loss_fn = nn.CrossEntropyLoss(weight=weights)
 
 # log training and data config
 if wandb_log:
@@ -55,23 +64,18 @@ if wandb_log:
             num_workers=os.cpu_count(),
         ),
     )
-    wandb.watch(model, log_freq=10)  # record model gradients
+    wandb.watch(model, log_freq=10)  # record model gradients every 10 steps
 print(
-    "Train/Validation: {}/{} batches of size {}*{}".format(
-        len(train_dataloader),
-        len(valid_dataloader),
-        batch_size,
-        (torch.cuda.device_count() if device == "cuda" else 1),
-    )
+    f"Train/Validation: {len(train_dataloader)}/{len(valid_dataloader)} batches "
+    f"of size {batch_size}*{(torch.cuda.device_count() if device == 'cuda' else 1)}"
 )
-
+# nij is the number of pixels of class i predicted to belong to class j
+n = torch.zeros((7, 7), device=device)
 for epoch in range(1, epochs + 1):
-    # nij is the number of pixels of class i predicted to belong to class j
-    n = torch.zeros(7, 7)
     model.train()
     # training loop
     with tqdm(
-        total=len(train_dataset), desc=f"Epoch {epoch}/{epochs}", unit="img"
+        total=len(train_dataset), desc=f"Training Epoch {epoch}/{epochs}", unit="img"
     ) as pbar:
         for batch, (X, y) in enumerate(train_dataloader):
             X, y = X.to(device), y.to(device)
@@ -93,11 +97,11 @@ for epoch in range(1, epochs + 1):
                 ohe_y = label_to_onehot(y, num_classes=7)
                 n += torch.stack(
                     [(ohe_pred * ohe_y[:, [c]]).sum(dim=[0, 2, 3]) for c in range(7)]
-                ).cpu()
-            # record train loss
+                )
+            # log the train loss
             if wandb_log:
                 wandb.log({"train/loss": loss.item()})
-            # update progress bar
+            # update progress bar and add batch loss as postfix
             pbar.update(X.shape[0])
             pbar.set_postfix(**{"loss (batch)": loss.item()})
 
@@ -124,17 +128,16 @@ for epoch in range(1, epochs + 1):
                     },
                 }
             )
-
-        # TODO: Add validation cadence
         # validation loop
         n *= 0
         val_loss = 0.0
         model.eval()
+        # table of prediction masks
         pred_table = wandb.Table(columns=["ID", "Image"])
         with torch.no_grad():
             with tqdm(
                 total=len(valid_dataset),
-                desc=f"Validation {epoch}/{epochs}",
+                desc=f"Validation epoch {epoch}/{epochs}",
                 unit="img",
             ) as pbar:
                 for batch, (X, y) in enumerate(valid_dataloader):
@@ -156,25 +159,29 @@ for epoch in range(1, epochs + 1):
                             (ohe_pred * ohe_y[:, [c]]).sum(dim=[0, 2, 3])
                             for c in range(7)
                         ]
-                    ).cpu()
-                    # log image predictions
-                    if wandb_log:
+                    )
+                    # log image predictions at the last validation epoch
+                    if wandb_log and epoch == epochs:
                         for idx in range(len(X)):
                             id = (idx + 1) + (batch * batch_size)
-                            img = wandb.Image(
-                                X[idx].cpu(),
-                                masks={
-                                    "predictions": {
-                                        "mask_data": pred[idx].cpu().numpy(),
-                                        "class_labels": class_labels,
+                            pred_table.add_data(
+                                id,
+                                # save satellite image, real mask and prediction mask
+                                wandb.Image(
+                                    X[idx].cpu(),
+                                    masks={
+                                        "predictions": {
+                                            "mask_data": pred[idx].cpu().numpy(),
+                                            "class_labels": class_labels,
+                                        },
+                                        "ground_truth": {
+                                            "mask_data": y[idx].cpu().numpy(),
+                                            "class_labels": class_labels,
+                                        },
                                     },
-                                    "ground_truth": {
-                                        "mask_data": y[idx].cpu().numpy(),
-                                        "class_labels": class_labels,
-                                    },
-                                },
+                                ),
                             )
-                            pred_table.add_data(id, img)
+                    # update validation progress bar
                     pbar.update(X.shape[0])
             val_loss /= len(valid_dataloader)
         if wandb_log:
