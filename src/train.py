@@ -8,7 +8,7 @@ import wandb
 
 from dataset import LandcoverDataset, class_names, class_labels
 from model import Unet
-from utils import label_to_onehot
+from utils import label_to_onehot, dice_loss
 
 
 # reproducibility
@@ -81,7 +81,7 @@ for epoch in range(1, epochs + 1):
             X, y = X.to(device), y.to(device)
             # forward pass
             logits = model(X)
-            loss = loss_fn(logits, y)
+            loss = dice_loss(logits, y)
             # backward pass
             optimizer.zero_grad()
             loss.backward()
@@ -94,9 +94,9 @@ for epoch in range(1, epochs + 1):
             with torch.no_grad():
                 pred = torch.argmax(logits, 1)
                 ohe_pred = label_to_onehot(pred, num_classes=7)
-                ohe_y = label_to_onehot(y, num_classes=7)
+                #ohe_y = label_to_onehot(y, num_classes=7) ya esta en one hot
                 n += torch.stack(
-                    [(ohe_pred * ohe_y[:, [c]]).sum(dim=[0, 2, 3]) for c in range(7)]
+                    [(ohe_pred * y[:, [c]]).sum(dim=[0, 2, 3]) for c in range(7)]
                 )
             # log the train loss
             if wandb_log:
@@ -144,7 +144,7 @@ for epoch in range(1, epochs + 1):
                     X, y = X.to(device), y.to(device)
                     # forward pass
                     logits = model(X)
-                    loss = loss_fn(logits, y)
+                    loss = dice_loss(logits, y)
                     val_loss += loss.item()
                     ## calculate classifications per label
                     # transform both the predictions and targets to one hot encoding,
@@ -153,10 +153,10 @@ for epoch in range(1, epochs + 1):
                     # class dim in order to get the clasifications of the fixed target class
                     pred = torch.argmax(logits, 1)
                     ohe_pred = label_to_onehot(pred, num_classes=7)
-                    ohe_y = label_to_onehot(y, num_classes=7)
+                    #ohe_y = label_to_onehot(y, num_classes=7)
                     n += torch.stack(
                         [
-                            (ohe_pred * ohe_y[:, [c]]).sum(dim=[0, 2, 3])
+                            (ohe_pred * y[:, [c]]).sum(dim=[0, 2, 3])
                             for c in range(7)
                         ]
                     )

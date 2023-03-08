@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from pathlib import Path
-
+from utils import label_to_onehot
 # When running local
 # data_dir = Path("../data")
 # masks_dir = Path("../data")
@@ -50,7 +50,7 @@ class LandcoverDataset(Dataset):
             sat_img = sat_img / 255.0  # scale images
 
         mask = read_image(str(masks_dir / f"{image_id}_mask.png")).long()
-
+        mask = label_to_onehot(mask,7)
         if self.transform is not None:
             sat_img = self.transform(sat_img)
         if self.target_transform is not None:
