@@ -38,6 +38,7 @@ loader_args = dict(
 train_dataloader = DataLoader(train_dataset, **loader_args)
 valid_dataloader = DataLoader(valid_dataset, **loader_args)
 
+"""
 # count the classes of the training data to add weights to the loss function
 weights = torch.zeros((7,))
 with tqdm(total=len(train_dataset), desc="Class counts", unit="img") as pbar:
@@ -47,10 +48,10 @@ with tqdm(total=len(train_dataset), desc="Class counts", unit="img") as pbar:
 weights = weights.to(device)
 weights = 1 - weights / weights.sum()
 loss_fn = nn.CrossEntropyLoss(weight=weights)
-
+"""
 # log training and data config
 if wandb_log:
-    wandb.login(key="5f5a6e6618ddafd57c6c7b40a8313449bfd7a04e")
+    wandb.login(key="2699e8522063dc2ad0f359c8230e5cc09db3ebd8")
     wandb.init(
         project="landcover-segmentation",
         save_code=True,
@@ -59,7 +60,7 @@ if wandb_log:
             batch_size=batch_size,
             resize_res=resize_res,
             optimizer=type(optimizer).__name__,
-            loss_fn=type(loss_fn).__name__,
+            loss_fn="dice_loss",
             model=type(model).__name__,
             num_workers=os.cpu_count(),
         ),
@@ -80,8 +81,9 @@ for epoch in range(1, epochs + 1):
         for batch, (X, y) in enumerate(train_dataloader):
             X, y = X.to(device), y.to(device)
             # forward pass
+            ohe_y= label_to_onehot(y,7)
             logits = model(X)
-            loss = dice_loss(logits, y)
+            loss = dice_loss(logits, ohe_y)
             # backward pass
             optimizer.zero_grad()
             loss.backward()
@@ -96,7 +98,7 @@ for epoch in range(1, epochs + 1):
                 ohe_pred = label_to_onehot(pred, num_classes=7)
                 #ohe_y = label_to_onehot(y, num_classes=7) ya esta en one hot
                 n += torch.stack(
-                    [(ohe_pred * y[:, [c]]).sum(dim=[0, 2, 3]) for c in range(7)]
+                    [(ohe_pred * ohe_y[:, [c]]).sum(dim=[0, 2, 3]) for c in range(7)]
                 )
             # log the train loss
             if wandb_log:
@@ -142,9 +144,10 @@ for epoch in range(1, epochs + 1):
             ) as pbar:
                 for batch, (X, y) in enumerate(valid_dataloader):
                     X, y = X.to(device), y.to(device)
+                    ohe_y= label_to_onehot(y,7)
                     # forward pass
                     logits = model(X)
-                    loss = dice_loss(logits, y)
+                    loss = dice_loss(logits, ohe_y)
                     val_loss += loss.item()
                     ## calculate classifications per label
                     # transform both the predictions and targets to one hot encoding,
@@ -156,7 +159,7 @@ for epoch in range(1, epochs + 1):
                     #ohe_y = label_to_onehot(y, num_classes=7)
                     n += torch.stack(
                         [
-                            (ohe_pred * y[:, [c]]).sum(dim=[0, 2, 3])
+                            (ohe_pred * ohe_y[:, [c]]).sum(dim=[0, 2, 3])
                             for c in range(7)
                         ]
                     )

@@ -50,7 +50,6 @@ class LandcoverDataset(Dataset):
             sat_img = sat_img / 255.0  # scale images
 
         mask = read_image(str(masks_dir / f"{image_id}_mask.png")).long()
-        mask = label_to_onehot(mask,7)
         if self.transform is not None:
             sat_img = self.transform(sat_img)
         if self.target_transform is not None:
