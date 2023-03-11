@@ -9,8 +9,8 @@ from sklearn.model_selection import train_test_split
 from pathlib import Path
 
 # When running local
-# data_dir = Path("../data")
-# masks_dir = Path("../data")
+# data_dir = Path("../data/raw")
+# masks_dir = Path("../data/interm")
 
 data_dir = Path("/kaggle/input/deepglobe-land-cover-classification-dataset")
 masks_dir = Path("/kaggle/input/processed-masks")

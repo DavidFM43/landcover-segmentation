@@ -6,7 +6,7 @@ from torchvision.transforms.functional import center_crop
 
 # TODO: Implement kaimming initialization
 def double_conv(in_channels, out_channels):
-    """3x3Conv -> ReLU -> 3x3Conv ->ReLU"""
+    """3x3Conv -> ReLU -> 3x3Conv -> ReLU"""
     conv = nn.Sequential(
         nn.Conv2d(
             in_channels=in_channels,
@@ -59,6 +59,15 @@ class Unet(nn.Module):
         self.outconv = nn.Conv2d(
             in_channels=64, out_channels=7, kernel_size=(1, 1), bias=True
         )
+
+        # initialize weights layers with kaiming normal
+        self.apply(self._init_weights)
+
+    def _init_weights(self, module):
+        if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d)):
+            nn.init.kaiming_normal_(module.weight, nonlinearity="relu")
+            if module.bias is not None:
+                nn.init.constant_(module.bias, 0)
 
     def forward(self, x):
         # contracting path

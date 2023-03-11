@@ -26,7 +26,7 @@ def label_to_onehot(mask, num_classes):
     Transforms a label encoded tensor to one hot encoding.
         Parameters:
             mask: Torch tensor of shape (H, W)
-            num_classes: Total number of classes:
+            num_classes: Total number of classes.
         Returns:
             Torch tensor of shape (num_classes, H, W).
     """
@@ -53,3 +53,18 @@ def label_to_rgb(mask, class_colors):
         alpha=1,
         colors=class_colors,
     )
+
+def count_classes(dataloader, device, num_classes=7):
+    """
+    Counts the number of pixels of each class.
+        Parameters:
+            dataloader: Torch dataloader of pairs X, y where y contains the class labels.
+            device: Device where to store output tensor. 
+            num_classes: Number of classes.
+        Returns:
+            Torch tensor of shape (num_classes,) that contains the counts of each class.
+    """
+    for _, y in dataloader:
+        counts += torch.bincount(y.view(-1), num_classes=num_classes)
+    counts = counts.to(device)
+    return counts

@@ -1,6 +1,11 @@
 # landcover-segmentation
 
-DeepGlobe LandCover Satellite Image Segmentation Challenge
+DeepGlobe LandCover Satellite Image Segmentation Challenge 2018 was one of three challenges launched by DeepGlobe in 2018 in order to push 
+forward the research of computer vision technologies in the field of satellite images.
+
+You can find the dataset in [Kaggle](https://www.kaggle.com/datasets/balraj98/deepglobe-land-cover-classification-dataset).
+
+
 
 ### Running the training script on Kaggle
 
@@ -16,16 +21,17 @@ python3 train_kaggle.py
 
 - [ ] Add weights to the CE loss 
 - [ ] Log gradient statistics, updated/activations ratio.
-- [ ] Add batchnorm layers to the Unet
+- [ ] Add batchnorm layers.
+- [ ] Find an appropiate initialization strategy for the network weights.
 - [ ] Implement dice loss
 - [ ] Try using upsampling instead of transpose convolutions
-- [ ] Normalize color channels when preprocessing
-- [ ] Tune the optimizer
-- [ ] Try using 2 T4 intead of 1 P100
+- [ ] Normalize color channels when preprocessing.
+- [ ] Tune the optimizer.
 - [ ] Half precision
 - [ ] Tiling
 - [ ] What is the best resize resolution
 - [ ] Augmentations
+- [ ] Try using 2 T4 intead of 1 P100.
 
 ### Questions
 

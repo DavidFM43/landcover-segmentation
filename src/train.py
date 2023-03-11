@@ -8,7 +8,7 @@ import wandb
 
 from dataset import LandcoverDataset, class_names, class_labels
 from model import Unet
-from utils import label_to_onehot
+from utils import label_to_onehot, count_classes
 
 
 # reproducibility
@@ -38,22 +38,20 @@ loader_args = dict(
 train_dataloader = DataLoader(train_dataset, **loader_args)
 valid_dataloader = DataLoader(valid_dataset, **loader_args)
 
+# TODO: Make this calculation optional
 # count the classes of the training data to add weights to the loss function
-weights = torch.zeros((7,))
-with tqdm(total=len(train_dataset), desc="Class counts", unit="img") as pbar:
-    for _, y in train_dataloader:
-        weights += torch.bincount(y.view(-1), minlength=7)
-        pbar.update(len(y))
-weights = weights.to(device)
-weights = 1 - weights / weights.sum()
+counts = count_classes(train_dataloader)
+weights = 1 - counts / counts.sum()
 loss_fn = nn.CrossEntropyLoss(weight=weights)
+
 
 # log training and data config
 if wandb_log:
     wandb.login(key="5f5a6e6618ddafd57c6c7b40a8313449bfd7a04e")
     wandb.init(
         project="landcover-segmentation",
-        save_code=True,
+        # notes="Baseline with weights in CE and 20 epochs",
+        tags=["baseline"],
         config=dict(
             epochs=epochs,
             batch_size=batch_size,
@@ -75,7 +73,9 @@ for epoch in range(1, epochs + 1):
     model.train()
     # training loop
     with tqdm(
-        total=len(train_dataset), desc=f"Training Epoch {epoch}/{epochs}", unit="img"
+        total=len(train_dataset),
+        desc=f"Training Epoch {epoch}/{epochs}",
+        unit="img",
     ) as pbar:
         for batch, (X, y) in enumerate(train_dataloader):
             X, y = X.to(device), y.to(device)
