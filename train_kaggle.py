@@ -13,7 +13,7 @@ datasets = [
 ]
 util_scripts = ["dataset", "model", "utils"]
 
-
+util_scripts_2 = ["model", "utils"]
 def run_script(script, data=[], scripts=[], gpu=False, util=False):
     kernels = [f"{username}/{script}" for script in scripts]
     # kernel metadata
@@ -52,7 +52,7 @@ def run_script(script, data=[], scripts=[], gpu=False, util=False):
 
 
 if __name__ == "__main__":
-    run_script("dataset", data=datasets, util=True)
+    run_script("dataset", scripts=util_scripts_2, data=datasets, util=True)
     run_script("model", util=True)
     run_script("utils", util=True)
     run_script("train", scripts=util_scripts, data=datasets, gpu=True)
