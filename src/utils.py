@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torchvision.utils import draw_segmentation_masks
 
 
+@torch.no_grad()
 def rgb_to_label(mask, class_colors):
     """
     Transforms a mask image from RGB format to label encoding.
@@ -21,6 +22,7 @@ def rgb_to_label(mask, class_colors):
     return semantic_map
 
 
+@torch.no_grad()
 def label_to_onehot(mask, num_classes):
     """
     Transforms a label encoded tensor to one hot encoding.
@@ -37,6 +39,7 @@ def label_to_onehot(mask, num_classes):
     )
 
 
+@torch.no_grad()
 def label_to_rgb(mask, class_colors):
     """
     Transforms a label encoded tensor to rgb.
@@ -54,6 +57,7 @@ def label_to_rgb(mask, class_colors):
         colors=class_colors,
     )
 
+@torch.no_grad()
 def count_classes(dataloader, device, num_classes=7):
     """
     Counts the number of pixels of each class.
