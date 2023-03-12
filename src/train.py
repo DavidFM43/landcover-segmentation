@@ -40,7 +40,7 @@ valid_dataloader = DataLoader(valid_dataset, **loader_args)
 
 # TODO: Make this calculation optional
 # count the classes of the training data to add weights to the loss function
-counts = count_classes(train_dataloader)
+counts = count_classes(train_dataloader, device=device)
 weights = 1 - counts / counts.sum()
 loss_fn = nn.CrossEntropyLoss(weight=weights)
 

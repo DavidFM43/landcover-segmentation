@@ -64,7 +64,8 @@ def count_classes(dataloader, device, num_classes=7):
         Returns:
             Torch tensor of shape (num_classes,) that contains the counts of each class.
     """
+    counts = torch.zeros((num_classes,))
     for _, y in dataloader:
-        counts += torch.bincount(y.view(-1), num_classes=num_classes)
+        counts += torch.bincount(y.view(-1), minlength=num_classes)
     counts = counts.to(device)
     return counts
