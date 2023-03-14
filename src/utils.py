@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torchvision.utils import draw_segmentation_masks
+from torchvision.io import read_image
 
 
 @torch.no_grad()
@@ -57,19 +58,17 @@ def label_to_rgb(mask, class_colors):
         colors=class_colors,
     )
 
+
 @torch.no_grad()
-def count_classes(dataloader, device, num_classes=7):
+def class_counts(dataset, transform=None, num_classes=7):
     """
     Counts the number of pixels of each class.
-        Parameters:
-            dataloader: Torch dataloader of pairs X, y where y contains the class labels.
-            device: Device where to store output tensor. 
-            num_classes: Number of classes.
-        Returns:
-            Torch tensor of shape (num_classes,) that contains the counts of each class.
     """
-    counts = torch.zeros((num_classes,))
-    for _, y in dataloader:
-        counts += torch.bincount(y.view(-1), minlength=num_classes)
-    counts = counts.to(device)
+    counts = torch.zeros((7,), dtype=torch.int64)
+    for image_id in dataset.image_ids:
+        if transform is not None:
+            mask = transform(read_image(str(dataset.masks_dir / f"{image_id}_mask.png")))
+        else:  
+            mask = read_image(str(dataset.masks_dir / f"{image_id}_mask.png"))
+        counts += torch.bincount(mask.view(-1), minlength=num_classes)
     return counts
