@@ -32,8 +32,10 @@ class_labels = {idx: name for idx, name in enumerate(class_names)}
 
 
 class LandcoverDataset(Dataset):
-    def __init__(self, train, transform=None, target_transform=None):
+    def __init__(self, train, satimgs_dir=satimgs_dir, masks_dir=masks_dir, transform=None, target_transform=None):
         self.image_ids = train_ids if train else test_ids
+        self.satimgs_dir = satimgs_dir
+        self.masks_dir = masks_dir
         self.transform = transform
         self.target_transform = target_transform
 
@@ -42,14 +44,14 @@ class LandcoverDataset(Dataset):
 
     def __getitem__(self, idx):
         image_id = self.image_ids[idx]
-        sat_img = read_image(str(satimgs_dir / f"{image_id}_sat.jpg")).float()
+        sat_img = read_image(str(self.satimgs_dir / f"{image_id}_sat.jpg")).float()
 
         # TODO: Probably need to refactor using torchvision transforms
         # TODO: Normalize with the mean and std of the dataset
         with torch.no_grad():
             sat_img = sat_img / 255.0  # scale images
 
-        mask = read_image(str(masks_dir / f"{image_id}_mask.png")).long()
+        mask = read_image(str(self.masks_dir / f"{image_id}_mask.png")).long()
 
         if self.transform is not None:
             sat_img = self.transform(sat_img)
