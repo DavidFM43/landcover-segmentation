@@ -3,19 +3,9 @@ import json
 import os
 from pathlib import Path
 
-api = kaggle.api
-api.authenticate()
-username = api.get_config_value(api.CONFIG_NAME_USER)
-src_dir = Path("src")
-datasets = [
-    "balraj98/deepglobe-land-cover-classification-dataset",
-    "davidfmora/processed-masks",
-]
-util_scripts = ["dataset", "model", "utils"]
 
-
-def run_script(script, data=[], scripts=[], gpu=False, util=False):
-    kernels = [f"{username}/{script}" for script in scripts]
+def run_script(script, data=[], util_scripts=[], gpu=False, is_util=False):
+    kernels = [f"{username}/{script}" for script in util_scripts]
     # kernel metadata
     metadata = {
         "id": f"{username}/{script}",
@@ -24,7 +14,7 @@ def run_script(script, data=[], scripts=[], gpu=False, util=False):
         "language": "python",
         "kernel_type": "script",
         "is_private": "true",
-        "keywords": ["util-script"] if util else [],
+        "keywords": ["util-script"] if is_util else [],
         "enable_gpu": gpu,
         "enable_internet": "true",
         "dataset_sources": data,
@@ -34,7 +24,7 @@ def run_script(script, data=[], scripts=[], gpu=False, util=False):
     with open("kernel-metadata.json", "w") as file:
         json.dump(metadata, file)
     # wait for the secondary scripts to run before running the main script
-    if scripts:
+    if util_scripts:
         print("\nWaiting for secondary scripts to finish running.")
         complete = []
         while sum(complete) != len(kernels):
@@ -44,7 +34,7 @@ def run_script(script, data=[], scripts=[], gpu=False, util=False):
             if sum(failed) > 0:
                 print(
                     "Scripts failed:",
-                    ",".join([scripts[idx] for idx, fail in enumerate(failed) if fail]),
+                    ",".join([util_scripts[idx] for idx, fail in enumerate(failed) if fail]),
                 )
                 return
     api.kernels_push_cli(os.getcwd())  # push kernel to kaggle
@@ -52,7 +42,16 @@ def run_script(script, data=[], scripts=[], gpu=False, util=False):
 
 
 if __name__ == "__main__":
-    run_script("dataset", data=datasets, util=True)
-    run_script("model", util=True)
-    run_script("utils", util=True)
-    run_script("train", scripts=util_scripts, data=datasets, gpu=True)
+    api = kaggle.api
+    api.authenticate()
+    username = api.get_config_value(api.CONFIG_NAME_USER)
+    src_dir = Path("src")
+    datasets = [
+        "balraj98/deepglobe-land-cover-classification-dataset",
+        "davidfmora/processed-masks",
+    ]
+
+    run_script("dataset", data=datasets, is_util=True)
+    run_script("model", is_util=True)
+    run_script("utils", is_util=True)
+    run_script("train", util_scripts=["dataset", "model", "utils"], data=datasets, gpu=True)
