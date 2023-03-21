@@ -1,10 +1,18 @@
 # landcover-segmentation
 
-DeepGlobe LandCover Satellite Image Segmentation Challenge 2018 was one of three challenges launched by DeepGlobe in 2018 in order to push 
-forward the research of computer vision technologies in the field of satellite images.
+DeepGlobe LandCover Satellite Image Segmentation Challenge 2018 was one of three challenges launched by DeepGlobe in 2018 in order to push forward the research of computer vision technologies in the field of satellite images.  You can find the dataset in [Kaggle](https://www.kaggle.com/datasets/balraj98/deepglobe-land-cover-classification-dataset).
 
-You can find the dataset in [Kaggle](https://www.kaggle.com/datasets/balraj98/deepglobe-land-cover-classification-dataset).
+The task was to classify the pixels of a satellite image in RGB format into 6 classes, namely: 
 
+|File Name| Explanation / Function |
+|---------|------------|
+|Urban land| Man-made, built up areas with human artifacts|
+|Agriculture land| Farms, any planned (i.e. regular) plantation, cropland, orchards, vineyards, nurseries,and ornamental horticultural areas; confined feedin goperations|
+|Rangeland| Any non-forest, non-farm, green land, grass|
+|Forest land| Any land with at least 20% tree crown density plus clear cuts|
+| Water| Rivers, oceans, lakes, wetland, ponds|
+| Barren land| Mountain, rock, dessert, beach, land with no vegetation|
+| Unknown| Clouds and others|
 
 
 ### Running the training script on Kaggle
@@ -19,21 +27,28 @@ python3 train_kaggle.py
 ```
 ### TODO:
 
-- [ ] Add weights to the CE loss 
+- [x] Try adding weights to the CE loss.
 - [ ] Log gradient statistics, updated/activations ratio.
-- [ ] Add batchnorm layers.
-- [ ] Find an appropiate initialization strategy for the network weights.
-- [ ] Implement dice loss
-- [ ] Try using upsampling instead of transpose convolutions
+- [ ] Try adding batchnorm layers.
+- [x] Find an appropiate initialization strategy for the network weights.
+- [ ] Implement dice loss.
+- [ ] Try using upsampling instead of transpose convolutions.
 - [ ] Normalize color channels when preprocessing.
 - [ ] Tune the optimizer.
-- [ ] Half precision
-- [ ] Tiling
-- [ ] What is the best resize resolution
-- [ ] Augmentations
-- [ ] Try using 2 T4 intead of 1 P100.
+- [ ] Half precision.
+- [ ] Tiling.
+- [ ] Augmentations.
+- [ ] Try using two Tesla T4 intead of one Tesla P100.
+- [ ] Add **Model** section to README.
+- [ ] Add **Logging** section to README.
+- [ ] Add **File structure** section to README.
+- [ ] Add **Dataset** section to README.
+- [ ] Add **Contribute** section to README.
+- [ ] Add **Setup** section to REEADME and `requiremets.txt` file.
+
 
 ### Questions
 
 - [x] ¿What are the key difference between per pixel accuracy and IoU?
 - [ ] ¿Why is Dice loss better than standard cross_entropy?
+- [ ] ¿What is the best resize resolution?
