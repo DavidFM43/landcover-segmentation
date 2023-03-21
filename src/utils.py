@@ -67,8 +67,52 @@ def class_counts(dataset, transform=None, num_classes=7):
     counts = torch.zeros((7,), dtype=torch.int64)
     for image_id in dataset.image_ids:
         if transform is not None:
-            mask = transform(read_image(str(dataset.masks_dir / f"{image_id}_mask.png")))
-        else:  
+            mask = transform(
+                read_image(str(dataset.masks_dir / f"{image_id}_mask.png"))
+            )
+        else:
             mask = read_image(str(dataset.masks_dir / f"{image_id}_mask.png"))
         counts += torch.bincount(mask.view(-1), minlength=num_classes)
     return counts
+
+
+@torch.no_grad()
+def calculate_conf_matrix(logits, y, num_classes=7):
+    """
+    Calculate classifications per label
+    transform both the predictions and targets to one hot encoding,
+    perform an element-wise product between a fixed target class and
+    all the class predictions, then sum over all the dims except for the
+    class dim in order to get the clasifications of the fixed target class
+    """
+    pred = torch.argmax(logits, 1)
+    ohe_pred = label_to_onehot(pred, num_classes=num_classes)
+    ohe_y = label_to_onehot(y, num_classes=num_classes)
+    return torch.stack(
+        [(ohe_pred * ohe_y[:, [c]]).sum(dim=[0, 2, 3]) for c in range(num_classes)]
+    )
+
+
+@torch.no_grad()
+def calculate_metrics(stage, conf_matrix, class_names):
+    """
+    Calculates the IoU(and accuracy) per class and average given the confusion matrix.
+    """
+    tp = conf_matrix.diag()  # true positives
+    fp = conf_matrix.sum(0) - tp  # false positives
+    n_class = conf_matrix.sum(1)  # total class gts
+    accuracy = tp / (n_class + 1e-5)
+    iou = tp / (n_class + fp + 1e-5)
+    # log metrics average and per class
+    return {
+        f"{stage}/mean_accuracy": accuracy[:-1].mean().item(),
+        **{
+            f"{stage}/accuracy_{c_name}": acc
+            for c_name, acc in zip(class_names, accuracy.tolist())
+        },
+        f"{stage}/mean_iou": iou[:-1].mean().item(),
+        **{
+            f"{stage}/iou_{c_name}": iou
+            for c_name, iou in zip(class_names, iou.tolist())
+        },
+    }
