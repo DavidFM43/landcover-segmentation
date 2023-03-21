@@ -7,7 +7,7 @@ The task was to classify the pixels of a satellite image in RGB format into 6 cl
 |File Name| Explanation / Function |
 |---------|------------|
 |Urban land| Man-made, built up areas with human artifacts|
-|Agriculture land| Farms, any planned (i.e. regular) plantation, cropland, orchards, vineyards, nurseries,and ornamental horticultural areas; confined feedin goperations|
+|Agriculture land| Farms, any planned (i.e. regular) plantation, cropland, orchards, vineyards, nurseries,and ornamental horticultural areas; confined feeding operations|
 |Rangeland| Any non-forest, non-farm, green land, grass|
 |Forest land| Any land with at least 20% tree crown density plus clear cuts|
 | Water| Rivers, oceans, lakes, wetland, ponds|
@@ -28,17 +28,18 @@ python3 train_kaggle.py
 ### TODO:
 
 - [x] Try adding weights to the CE loss.
-- [ ] Log gradient statistics, updated/activations ratio.
-- [ ] Try adding batchnorm layers.
 - [x] Find an appropiate initialization strategy for the network weights.
 - [ ] Implement dice loss.
+- [ ] Try adding batchnorm layers.
+- [ ] Log gradient statistics, updated/activations ratio.
 - [ ] Try using upsampling instead of transpose convolutions.
 - [ ] Normalize color channels when preprocessing.
-- [ ] Tune the optimizer.
-- [ ] Half precision.
-- [ ] Tiling.
-- [ ] Augmentations.
+- [ ] Try other popular segmentation models from this [library](https://github.com/qubvel/segmentation_models.pytorch) 
 - [ ] Try using two Tesla T4 intead of one Tesla P100.
+- [ ] Implement Tiling.
+- [ ] Try Augmentations.
+- [ ] Half precision.
+- [ ] Tune the optimizer, batch size, .
 - [ ] Add **Model** section to README.
 - [ ] Add **Logging** section to README.
 - [ ] Add **File structure** section to README.
