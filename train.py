@@ -6,7 +6,7 @@ from tqdm import tqdm
 import os
 import wandb
 
-from dataset import LandcoverDataset, class_names, class_labels
+from dataset import LandcoverDataset, class_labels
 from model import Unet
 from utils import (
     class_counts,
@@ -22,8 +22,8 @@ torch.backends.cudnn.deterministic = True
 wandb_log = True
 # data
 resize_res = 512
-batch_size = 5
-epochs = 100
+batch_size = 8
+epochs = 60
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # init model and optimizer
 model = Unet()
