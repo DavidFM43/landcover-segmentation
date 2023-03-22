@@ -12,6 +12,7 @@ from utils import (
     class_counts,
     calculate_conf_matrix,
     calculate_metrics,
+    dice_loss
 )
 
 
@@ -58,7 +59,7 @@ print("CE weights:", weights.tolist())
 
 # log training and data config
 if wandb_log:
-    wandb.login(key="5f5a6e6618ddafd57c6c7b40a8313449bfd7a04e")
+    wandb.login(key="2699e8522063dc2ad0f359c8230e5cc09db3ebd8")
     wandb.init(
         tags=["baseline"],
         notes="100 epochs",
@@ -100,7 +101,9 @@ for epoch in range(1, epochs + 1):
             X, y = X.to(device), y.to(device)
             # forward pass
             logits = model(X)
-            loss = loss_fn(logits, y)
+
+            loss = dice_loss(logits,y )
+            #loss = loss_fn(logits, y)
             # backward pass
             optimizer.zero_grad()
             loss.backward()
@@ -132,7 +135,8 @@ for epoch in range(1, epochs + 1):
                 X, y = X.to(device), y.to(device)
                 # forward pass
                 logits = model(X)
-                loss = loss_fn(logits, y)
+                loss = dice_loss(logits, y)
+                #loss = loss_fn(logits, y)
                 val_loss += loss.item()
                 # log prediction matrix
                 conf_matrix += calculate_conf_matrix(logits, y)
