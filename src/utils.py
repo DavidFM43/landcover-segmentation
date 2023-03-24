@@ -23,7 +23,6 @@ def rgb_to_label(mask, class_colors):
     return semantic_map
 
 
-@torch.no_grad()
 def label_to_onehot(mask, num_classes):
     """
     Transforms a label encoded tensor to one hot encoding.
@@ -163,5 +162,5 @@ def dice_loss(input, target, epsilon=1e-6, weight=None):
         intersect = weight * intersect
 
     # here we can use standard dice (input + target).sum(-1) or extension (see V-Net) (input^2 + target^2).sum(-1)
-    denominator = (input ).sum(-1) + (target ).sum(-1)
-    return 1 -sum(2 * (intersect / denominator.clamp(min=epsilon)))/7
+    denominator = (input *input).sum(-1) + (target*target ).sum(-1)
+    return 1 -sum(2 * (intersect / denominator.clamp(min=epsilon)))

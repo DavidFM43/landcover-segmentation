@@ -24,7 +24,7 @@ wandb_log = True
 # data
 resize_res = 512
 batch_size = 5
-epochs = 100
+epochs = 10
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # init model and optimizer
 model = Unet()
@@ -54,7 +54,7 @@ counts = class_counts(train_dataset, transform=transform_args["target_transform"
 weights = 1 - counts / counts.sum()  # [0.893, 0.427, 0.916, 0.880, 0.966, 0.914, 0.999]
 weights[-1] = 0
 weights = weights.to(device)
-loss_fn = nn.CrossEntropyLoss(weight=weights)
+#loss_fn = nn.CrossEntropyLoss(weight=weights)
 print("CE weights:", weights.tolist())
 
 # log training and data config
@@ -62,7 +62,7 @@ if wandb_log:
     wandb.login(key="2699e8522063dc2ad0f359c8230e5cc09db3ebd8")
     wandb.init(
         tags=["baseline"],
-        notes="100 epochs",
+        notes="3 epochs",
         project="landcover-segmentation",
         config=dict(
             ce_weights=weights,
@@ -70,7 +70,7 @@ if wandb_log:
             batch_size=batch_size,
             resize_res=resize_res,
             optimizer=type(optimizer).__name__,
-            loss_fn=type(loss_fn).__name__,
+            loss_fn="DiceLoss",
             lr=lr,
             model=type(model).__name__,
             num_workers=os.cpu_count(),
@@ -102,7 +102,7 @@ for epoch in range(1, epochs + 1):
             # forward pass
             logits = model(X)
 
-            loss = dice_loss(logits,y )
+            loss = dice_loss(logits,y, weight=weights )
             #loss = loss_fn(logits, y)
             # backward pass
             optimizer.zero_grad()
@@ -135,7 +135,7 @@ for epoch in range(1, epochs + 1):
                 X, y = X.to(device), y.to(device)
                 # forward pass
                 logits = model(X)
-                loss = dice_loss(logits, y)
+                loss = dice_loss(logits, y, weight=weights)
                 #loss = loss_fn(logits, y)
                 val_loss += loss.item()
                 # log prediction matrix
