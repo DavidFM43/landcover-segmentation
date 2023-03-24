@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 import wandb
+from key import key
 
 from dataset import LandcoverDataset, class_names, class_labels
 from model import Unet
@@ -16,6 +17,7 @@ from utils import (
 
 
 # reproducibility
+# setting the random seed and controlling the deterministic behavior of the GPU computational engine
 torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
@@ -30,6 +32,7 @@ model = Unet()
 model.to(device)
 lr = 3e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+# checkpoints
 save_cp = True
 if save_cp:
     os.mkdir("checkpoints/")
@@ -58,10 +61,10 @@ print("CE weights:", weights.tolist())
 
 # log training and data config
 if wandb_log:
-    wandb.login(key="5f5a6e6618ddafd57c6c7b40a8313449bfd7a04e")
+    wandb.login(key=key)
     wandb.init(
         tags=["baseline"],
-        notes="100 epochs",
+        notes="epochs:"+ str(epochs) ,
         project="landcover-segmentation",
         config=dict(
             ce_weights=weights,
@@ -126,7 +129,10 @@ for epoch in range(1, epochs + 1):
     val_loss = 0.0
     model.eval()
     pred_table = wandb.Table(columns=["ID", "Image"])  # table of prediction masks
+
+    # Create a progress bar to monitor the progress of the task
     with tqdm(total=n_val, desc=f"Valid epoch {epoch}/{epochs}", unit="img") as pb:
+        
         with torch.no_grad():
             for batch, (X, y) in enumerate(valid_dataloader):
                 X, y = X.to(device), y.to(device)
