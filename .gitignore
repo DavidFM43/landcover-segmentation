@@ -169,4 +169,6 @@ cython_debug/
 
 # src
 
-src/key.py
+src/key/key.py
+
+src/checkpoints/CP_epoch20.pth

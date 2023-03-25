@@ -5,7 +5,9 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 import wandb
-from key import key
+from key.key import key
+import checkpoints
+
 
 from dataset import LandcoverDataset, class_names, class_labels
 from model import Unet
@@ -32,7 +34,7 @@ model = Unet()
 model.to(device)
 lr = 3e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-# checkpoints
+# save checkpoints
 save_cp = True
 if save_cp:
     os.mkdir("checkpoints/")
