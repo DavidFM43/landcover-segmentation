@@ -14,6 +14,25 @@ from utils import (
     calculate_metrics,
 )
 
+import subprocess
+
+# Specify the pip command
+command = 'pip install segmentation_models_pytorch'
+
+# Run the command in the terminal
+process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+output, error = process.communicate()
+
+# Print the output of the command (if any)
+if output:
+    print(output.decode())
+    
+# Print the error of the command (if any)
+if error:
+    print(error.decode())
+
+
+import segmentation_models_pytorch as smp
 
 # reproducibility
 torch.manual_seed(1)
@@ -23,16 +42,27 @@ wandb_log = True
 # data
 resize_res = 512
 batch_size = 5
-epochs = 100
+epochs = 20
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # init model and optimizer
-model = Unet()
+
+
+#model = Unet()
+
+model = smp.Unet(
+    encoder_name='resnet34',        # el tipo de encoder que se usará (en este caso, ResNet34)
+    encoder_weights='imagenet',     # los pesos pre-entrenados que se utilizarán para el encoder
+    in_channels=3,                  # el número de canales de entrada de la imagen (RGB tiene 3 canales)
+    classes=7,                      # el número de clases que se quieren segmentar
+)
+
 model.to(device)
 lr = 3e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 save_cp = True
 if save_cp:
     os.mkdir("checkpoints/")
+
 transform_args = dict(
     transform=transforms.Resize(resize_res),
     target_transform=transforms.Resize(resize_res),
@@ -58,10 +88,10 @@ print("CE weights:", weights.tolist())
 
 # log training and data config
 if wandb_log:
-    wandb.login(key="5f5a6e6618ddafd57c6c7b40a8313449bfd7a04e")
+    wandb.login(key="2699e8522063dc2ad0f359c8230e5cc09db3ebd8")
     wandb.init(
         tags=["baseline"],
-        notes="100 epochs",
+        notes="epochs" +str(epochs),
         project="landcover-segmentation",
         config=dict(
             ce_weights=weights,
