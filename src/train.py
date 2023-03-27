@@ -46,15 +46,25 @@ epochs = 20
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # init model and optimizer
 
-
-#model = Unet()
-
-model = smp.Unet(
+if False:
+    model = Unet()
+if False:
+    model = smp.Unet(
     encoder_name='resnet34',        # el tipo de encoder que se usará (en este caso, ResNet34)
     encoder_weights='imagenet',     # los pesos pre-entrenados que se utilizarán para el encoder
     in_channels=3,                  # el número de canales de entrada de la imagen (RGB tiene 3 canales)
     classes=7,                      # el número de clases que se quieren segmentar
 )
+if True:
+    model = smp.DeepLabV3(
+    encoder_name='resnet34',    # el tipo de encoder que se usará (en este caso, ResNet34)
+    encoder_weights='imagenet', # los pesos pre-entrenados que se utilizarán para el encoder
+    in_channels=3,              # el número de canales de entrada de la imagen (RGB tiene 3 canales)
+    classes=7,                  # el número de clases que se quieren segmentar
+    activation='softmax'        # la función de activación para la salida (en este caso, softmax)
+)
+
+
 
 model.to(device)
 lr = 3e-4
