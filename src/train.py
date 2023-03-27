@@ -38,11 +38,11 @@ import segmentation_models_pytorch as smp
 torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
-wandb_log = True
+wandb_log = False
 # data
 resize_res = 512
 batch_size = 5
-epochs = 20
+epochs = 1
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # init model and optimizer
 
@@ -56,15 +56,21 @@ model_args = {
     "activation": "softmax"
 }
 
-if False:
-    model = Unet()
-if False:
-    model = smp.Unet(**model_args)
-if False:
-    model = smp.DeepLabV3(**model_args)      
-if True:
-    model = smp.Linknet(**model_args)
+
+model_architecture = getattr(smp, "Unet")
+model_args = {
+    "encoder_name": "resnet34",
+    "encoder_weights": "imagenet",
+    "in_channels": 3,
+    "classes": 7,
+    "activation": "softmax"
+}
+
+# Inicializar el modelo
+model = model_architecture(**model_args)
 model.to(device)
+
+
 lr = 3e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 save_cp = True
