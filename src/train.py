@@ -60,11 +60,10 @@ if False:
     model = Unet()
 if False:
     model = smp.Unet(**model_args)
+if False:
+    model = smp.DeepLabV3(**model_args)      
 if True:
-    model = smp.DeepLabV3(**model_args)        # la función de activación para la salida (en este caso, softmax)
-
-
-
+    model = smp.Linknet(**model_args)
 model.to(device)
 lr = 3e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
