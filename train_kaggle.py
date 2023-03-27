@@ -2,9 +2,10 @@ import kaggle
 import json
 import os
 from pathlib import Path
+from typing import List
 
-
-def run_script(script, data=[], util_scripts=[], gpu=False, is_util=False):
+def run_script(script: str, data=[], util_scripts=[], gpu=False, is_util=False):
+    # create a list of kernels (secondary scripts) using the filenames in util_scripts
     kernels = [f"{username}/{script}" for script in util_scripts]
     # kernel metadata
     metadata = {
