@@ -6,7 +6,7 @@ from tqdm import tqdm
 import os
 import wandb
 
-from dataset import LandcoverDataset, class_labels
+from dataset import LandcoverDataset, class_labels, class_names
 from model import Unet
 from utils import (
     class_counts,
@@ -61,7 +61,7 @@ if wandb_log:
     wandb.login(key="5f5a6e6618ddafd57c6c7b40a8313449bfd7a04e")
     wandb.init(
         tags=["baseline"],
-        notes="100 epochs",
+        notes="Added BN, 60 epochs and 8 BS",
         project="landcover-segmentation",
         config=dict(
             ce_weights=weights,
@@ -114,7 +114,7 @@ for epoch in range(1, epochs + 1):
             pb.set_postfix(**{"loss (batch)": loss.item()})
 
     if wandb_log:
-        metrics_dict = calculate_metrics("train", conf_matrix, class_labels)
+        metrics_dict = calculate_metrics("train", conf_matrix, class_names)
         wandb.log({"epoch": epoch, **metrics_dict})
 
     # save checkpoints
@@ -158,7 +158,7 @@ for epoch in range(1, epochs + 1):
                 pb.update(X.shape[0])  # update validation progress bar
         val_loss /= len(valid_dataloader)
     if wandb_log:
-        metrics_dict = calculate_metrics("val", conf_matrix, class_labels)
+        metrics_dict = calculate_metrics("val", conf_matrix, class_names)
         wandb.log(
             {
                 "epoch": epoch,
