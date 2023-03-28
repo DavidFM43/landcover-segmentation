@@ -45,7 +45,7 @@ python3 train_kaggle.py
 - [ ] Add **File structure** section to README.
 - [ ] Add **Dataset** section to README.
 - [ ] Add **Contribute** section to README.
-- [ ] Add **Setup** section to REEADME and `requiremets.txt` file.
+- [ ] Add **Setup** section to README and `requiremets.txt` file.
 
 
 ### Questions
