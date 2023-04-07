@@ -1,6 +1,6 @@
 import torch
 from torchvision import transforms
-from torch import nn
+from torch import nn  # Not used
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
@@ -14,7 +14,6 @@ from utils import (
     calculate_metrics,
     dice_loss
 )
-
 
 # reproducibility
 torch.manual_seed(1)
