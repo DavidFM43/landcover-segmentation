@@ -59,7 +59,7 @@ print("CE weights:", weights.tolist())
 
 # log training and data config
 if wandb_log:
-    wandb.login(key="2699e8522063dc2ad0f359c8230e5cc09db3ebd8")
+    wandb.login(key="560f39aa5ee68d30d290204f7903912dc42ee7a6")
     wandb.init(
         tags=["baseline"],
         notes="3 epochs",

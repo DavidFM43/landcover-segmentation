@@ -23,7 +23,7 @@ def run_script(script, data=[], util_scripts=[], gpu=False, is_util=False):
     }
     with open("kernel-metadata.json", "w") as file:
         json.dump(metadata, file)
-    # wait for the secondary scripts to run before running the main script
+    # it for the secondary scripts to run before running the main script
     if util_scripts:
         print("\nWaiting for secondary scripts to finish running.")
         complete = []
