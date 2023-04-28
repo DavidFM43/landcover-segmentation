@@ -30,7 +30,7 @@ python3 train_kaggle.py
 - [x] Try adding weights to the CE loss.
 - [x] Find an appropiate initialization strategy for the network weights.
 - [ ] Implement dice loss.
-- [ ] Try adding batchnorm layers.
+- [x] Try adding batchnorm layers.
 - [ ] Log gradient statistics, updated/activations ratio.
 - [ ] Try using upsampling instead of transpose convolutions.
 - [ ] Normalize color channels when preprocessing.
