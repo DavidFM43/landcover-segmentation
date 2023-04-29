@@ -13,9 +13,9 @@ from utils import (
     calculate_conf_matrix,
     calculate_metrics,
 )
-
 import subprocess
 
+# Installation of the model library
 # Specify the pip command
 command = 'pip install segmentation_models_pytorch'
 
@@ -26,50 +26,43 @@ output, error = process.communicate()
 # Print the output of the command (if any)
 if output:
     print(output.decode())
-    
 # Print the error of the command (if any)
 if error:
     print(error.decode())
 
-
 import segmentation_models_pytorch as smp
+import argparse
+import yaml
 
-# reproducibility
+# Create command-line argument for YAML file name
+parser = argparse.ArgumentParser()
+parser.add_argument('--yaml', help='Path and name of YAML file')
+args = parser.parse_args()
+
+# Read YAML file specified in command-line argument
+with open(args.yaml, 'r') as file:
+    config = yaml.safe_load(file)
+
+
+# Reproducibility
 torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 wandb_log = False
 # data
-resize_res = 512
-batch_size = 5
-epochs = 1
+train_c = config['train']
+model_c = config['model']
+
+resize_res = train_c['resize_res']
+batch_size = train_c['batch_size']
+epochs = train_c['epochs']
+
+# initialize model
 device = "cuda" if torch.cuda.is_available() else "cpu"
-# init model and optimizer
+model_architecture = getattr(smp, model_c.pop('architecture'))
 
-
-
-model_args = {
-    "encoder_name": "resnet34",
-    "encoder_weights": "imagenet",
-    "in_channels": 3,
-    "classes": 7,
-    "activation": "softmax"
-}
-
-
-model_architecture = getattr(smp, "Unet")
-model_args = {
-    "encoder_name": "resnet34",
-    "encoder_weights": "imagenet",
-    "in_channels": 3,
-    "classes": 7,
-    "activation": "softmax"
-}
-
-# Inicializar el modelo
-model = model_architecture(**model_args)
+model = model_architecture(**model_c)
 model.to(device)
-
 
 lr = 3e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
