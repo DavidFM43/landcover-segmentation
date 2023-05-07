@@ -14,22 +14,23 @@ from utils import (
     calculate_metrics,
     dice_loss
 )
-import subprocess
 
+# TODO: Refactor this out of the script
+########################################
+import subprocess
 # Installation of the model library
 # Specify the pip command
 command = 'pip install segmentation_models_pytorch'
-
 # Run the command in the terminal
 process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
 output, error = process.communicate()
-
 # Print the output of the command (if any)
 if output:
     print(output.decode())
 # Print the error of the command (if any)
 if error:
     print(error.decode())
+########################################
 
 import segmentation_models_pytorch as smp
 import argparse
@@ -37,7 +38,7 @@ import yaml
 
 # Create command-line argument for YAML file name
 parser = argparse.ArgumentParser()
-parser.add_argument('--yaml', help='Path and name of YAML file')
+parser.add_argument('--config', help='Path and name of YAML file')
 args = parser.parse_args()
 
 # Read YAML file specified in command-line argument
