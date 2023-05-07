@@ -15,25 +15,63 @@ from utils import (
     dice_loss
 )
 
+# TODO: Refactor this out of the script
+########################################
+import subprocess
+# Installation of the model library
+# Specify the pip command
+command = 'pip install segmentation_models_pytorch'
+# Run the command in the terminal
+process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+output, error = process.communicate()
+# Print the output of the command (if any)
+if output:
+    print(output.decode())
+# Print the error of the command (if any)
+if error:
+    print(error.decode())
+########################################
 
-# reproducibility
+import segmentation_models_pytorch as smp
+import argparse
+import yaml
+
+# Create command-line argument for YAML file name
+parser = argparse.ArgumentParser()
+parser.add_argument('--config', help='Path and name of YAML file')
+args = parser.parse_args()
+
+# Read YAML file specified in command-line argument
+with open(args.yaml, 'r') as file:
+    config = yaml.safe_load(file)
+
+
+# Reproducibility
 torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
-wandb_log = True
+wandb_log = False
 # data
-resize_res = 512
-batch_size = 8
-epochs = 60
+train_c = config['train']
+model_c = config['model']
+
+resize_res = train_c['resize_res']
+batch_size = train_c['batch_size']
+epochs = train_c['epochs']
+
+# initialize model
 device = "cuda" if torch.cuda.is_available() else "cpu"
-# init model and optimizer
-model = Unet()
+model_architecture = getattr(smp, model_c.pop('architecture'))
+
+model = model_architecture(**model_c)
 model.to(device)
+
 lr = 3e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 save_cp = True
 if save_cp:
     os.mkdir("checkpoints/")
+
 transform_args = dict(
     transform=transforms.Resize(resize_res),
     target_transform=transforms.Resize(resize_res),
@@ -60,6 +98,7 @@ print("CE weights:", weights.tolist())
 # log training and data config
 if wandb_log:
     wandb.login(key="2699e8522063dc2ad0f359c8230e5cc09db3ebd8")
+    # TODO: Add entity parameter to log to the team account
     wandb.init(
         tags=["baseline"],
         notes="",
