@@ -1,8 +1,6 @@
 import kaggle
 import json
 import os
-from pathlib import Path
-from typing import List
 
 def run_script(script: str, data=[], util_scripts=[], gpu=False, is_util=False):
     # create a list of kernels (secondary scripts) using the filenames in util_scripts
@@ -11,7 +9,7 @@ def run_script(script: str, data=[], util_scripts=[], gpu=False, is_util=False):
     metadata = {
         "id": f"{username}/{script}",
         "title": script,
-        "code_file": f"{src_dir / script}.py",
+        "code_file": f"{script}.py",
         "language": "python",
         "kernel_type": "script",
         "is_private": "true",
@@ -46,7 +44,6 @@ if __name__ == "__main__":
     api = kaggle.api
     api.authenticate()
     username = api.get_config_value(api.CONFIG_NAME_USER)
-    src_dir = Path("src")
     datasets = [
         "balraj98/deepglobe-land-cover-classification-dataset",
         "davidfmora/processed-masks",
