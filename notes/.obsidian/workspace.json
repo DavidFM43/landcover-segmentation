@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "a01174d5ff1747f7",
+        "id": "3fc41fefca8ecc80",
         "type": "tabs",
         "children": [
           {
-            "id": "476b5461737013c3",
+            "id": "ef04c3e44eff4fc8",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -146,6 +146,11 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "476b5461737013c3",
-  "lastOpenFiles": []
+  "active": "ef04c3e44eff4fc8",
+  "lastOpenFiles": [
+    "Li_From_Contexts_to_Locality_Ultra-High_Resolution_Image_Segmentation_via_Locality-Aware_ICCV_2021_paper.pdf",
+    "Unconfirmed 442619.crdownload",
+    "Experimentations.md",
+    "Resources.md"
+  ]
 }

@@ -12,6 +12,17 @@ La idea ahora es leer cada paper pero mas importante aún, orientar la lectura a
 - [Ultra-high Resolution Image Segmentation via Locality-aware Context Fusion and Alternating Local Enhancement](https://paperswithcode.com/paper/from-contexts-to-locality-ultra-high)
 - https://ieeexplore.ieee.org/abstract/document/10097646
 - https://openaccess.thecvf.com/content_CVPRW_2020/papers/w11/Russwurm_Meta-Learning_for_Few-Shot_Land_Cover_Classification_CVPRW_2020_paper.pdf
+- https://openaccess.thecvf.com/content_CVPR_2019/papers/Chen_Collaborative_Global-Local_Networks_for_Memory-Efficient_Segmentation_of_Ultra-High_Resolution_Images_CVPR_2019_paper.pdf
 
 ### **Ultra-high Resolution Image Segmentation via Locality-aware Context Fusion and Alternating Local Enhancement**
-- 
+
+Hay varios factores importantes a considerar:
+- Los modelos de segmentación semantica suelen ser mas exignentes en terminos de memoria de GPU.
+- Las imagenes satelitates tienen una resolucion ultra-alta, lo cual añadido al punto anterior, significa un problema.
+- Ante esto se plantean las soluciones basicas, que son:
+	- Redimensionar las imagenes a una resolución mucho mas pequeña para estar dentro de las limitaciones de la GPU
+	- Dividir la imagen original en parches de menor tamaño, predecir de forma independiente en cada parche y luego juntar las prediciones de los parches en una sola imagen.
+Entiendo que lo interesante de la propuesta es que integran información global a la hora de predecir parches locales
+
+Usan focal-loss, que es una variance de CE.
+Dividen los 803 datos en: 454, 207, and 142
