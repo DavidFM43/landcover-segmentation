@@ -45,8 +45,7 @@ if __name__ == "__main__":
     api.authenticate()
     username = api.get_config_value(api.CONFIG_NAME_USER)
     datasets = [
-        "balraj98/deepglobe-land-cover-classification-dataset",
-        "davidfmora/processed-masks",
+        "davidfmora/deepglobe-land-cover-classification-procesed"
     ]
 
     run_script("dataset", data=datasets, is_util=True)

@@ -19,7 +19,7 @@ from utils import calculate_conf_matrix, calculate_metrics, dice_loss
 # load configuration
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", help="Path to configuration file")
-parser.add_argument("--wandb_log", help="Path to configuration file", type=bool, default=False)
+parser.add_argument("--log", help="Path to configuration file", type=bool, default=False)
 args = parser.parse_args()
 with open(args.config, "r") as file:
     config = yaml.safe_load(file)
@@ -28,7 +28,7 @@ torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 # logging
-wandb_log = args.wandb_log
+wandb_log = args.log
 # data
 resize_res = config["resize_res"]
 batch_size = config["batch_size"]

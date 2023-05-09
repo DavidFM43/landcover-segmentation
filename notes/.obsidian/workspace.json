@@ -4,16 +4,16 @@
     "type": "split",
     "children": [
       {
-        "id": "3fc41fefca8ecc80",
+        "id": "559065886dc4a506",
         "type": "tabs",
         "children": [
           {
-            "id": "ef04c3e44eff4fc8",
+            "id": "2d2a43d6a46134c8",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Resources.md",
+                "file": "README.md",
                 "mode": "source",
                 "source": false
               }
@@ -85,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Resources.md",
+                "file": "README.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Resources.md",
+                "file": "README.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Resources.md"
+                "file": "README.md"
               }
             }
           }
@@ -146,11 +146,13 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "ef04c3e44eff4fc8",
+  "active": "2d2a43d6a46134c8",
   "lastOpenFiles": [
-    "Li_From_Contexts_to_Locality_Ultra-High_Resolution_Image_Segmentation_via_Locality-Aware_ICCV_2021_paper.pdf",
-    "Unconfirmed 442619.crdownload",
+    "Resources.md",
     "Experimentations.md",
-    "Resources.md"
+    "Documentación.md",
+    "README.md",
+    "Li_From_Contexts_to_Locality_Ultra-High_Resolution_Image_Segmentation_via_Locality-Aware_ICCV_2021_paper.pdf",
+    "Unconfirmed 442619.crdownload"
   ]
 }
