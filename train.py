@@ -15,7 +15,6 @@ from get_key import wandb_key
 from model import Unet
 from utils import calculate_conf_matrix, calculate_metrics, dice_loss
 
-
 # load configuration
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", help="Path to configuration file")
@@ -54,7 +53,7 @@ transform = transforms.Compose(
 target_transform = transforms.Compose(
     [
         transforms.Resize(resize_res),
-        transforms.ToTensor(),
+        transforms.PILToTensor(),
     ]
 )
 # datasets
