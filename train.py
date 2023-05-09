@@ -13,7 +13,7 @@ from tqdm import tqdm
 from dataset import LandcoverDataset, class_names, label_to_name
 from get_key import wandb_key
 from model import Unet
-from utils import calculate_conf_matrix, calculate_metrics, dice_loss
+from utils import calculate_conf_matrix, calculate_metrics, dice_loss, UnNormalize
 
 # load configuration
 parser = argparse.ArgumentParser()
@@ -43,11 +43,13 @@ optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 save_cp = True
 if save_cp: os.mkdir("checkpoints/")
 # data transformation
+mean = [0.4085, 0.3798, 0.2822]
+std = [0.1410, 0.1051, 0.0927]
 transform = transforms.Compose(
     [
         transforms.Resize(resize_res),
         transforms.ToTensor(),
-        transforms.Normalize([0.4085, 0.3798, 0.2822], [0.1410, 0.1051, 0.0927]),
+        transforms.Normalize(mean, std),
     ]
 )
 target_transform = transforms.Compose(
@@ -56,6 +58,7 @@ target_transform = transforms.Compose(
         transforms.PILToTensor(),
     ]
 )
+undo_normalization = UnNormalize(mean, std)
 # datasets
 ds = LandcoverDataset(transform=transform, target_transform=target_transform)
 train_ds, valid_ds, test_ds = torch.utils.data.random_split(ds, [454, 207, 142])
@@ -107,7 +110,7 @@ print(
     """
 )
 
-# ij is the number of pixels of class i predicted to belong to class j
+# columns are the predictions and rows are the real labels
 conf_matrix = torch.zeros((7, 7), device=device)
 for epoch in range(1, epochs + 1):
     conf_matrix.zero_()
@@ -166,7 +169,7 @@ for epoch in range(1, epochs + 1):
                     for idx in range(len(X)):
                         id = (idx + 1) + (batch * batch_size)
                         overlay_image = wandb.Image(
-                            X[idx].cpu(),
+                            undo_normalization(X[idx]).cpu(),
                             masks={
                                 "predictions": {
                                     "mask_data": pred[idx].cpu().numpy(),

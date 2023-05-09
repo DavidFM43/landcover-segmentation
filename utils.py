@@ -1,7 +1,15 @@
 import torch
 import torch.nn.functional as F
 from torchvision.utils import draw_segmentation_masks
+import torchvision
 from tqdm import tqdm
+
+
+class UnNormalize(torchvision.transforms.Normalize):
+    def __init__(self, mean, std, *args, **kwargs):
+        new_mean = [-m / s for m, s in zip(mean, std)]
+        new_std = [1 / s for s in std]
+        super().__init__(new_mean, new_std, *args, **kwargs)
 
 
 @torch.no_grad()
@@ -72,6 +80,7 @@ def class_counts(dataset, num_classes=7):
             counts += torch.bincount(y.view(-1), minlength=num_classes)
             pbar.update(X.shape[0])
     return counts
+
 
 def calculate_channel_stats(ds):
     """
@@ -153,7 +162,9 @@ def flatten(tensor):
     # Transpose: (N, C, D, H, W) -> (C, N, D, H, W)
     transposed = tensor.permute(axis_order)
     # Flatten: (C, N, D, H, W) -> (C, N * D * H * W)
-    return transposed.contiguous().view(C, -1)  # memoria contigua y operaciones lineales
+    return transposed.contiguous().view(
+        C, -1
+    )  # memoria contigua y operaciones lineales
 
 
 def dice_loss(input, target, epsilon=1e-6, weight=None):
