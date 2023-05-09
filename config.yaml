@@ -10,4 +10,3 @@ model_config:
   encoder_weights: "imagenet"
   in_channels: 3
   classes: 7
-  activation: "softmax"
