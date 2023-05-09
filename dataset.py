@@ -1,8 +1,9 @@
+import os
+from pathlib import Path
+
 import pandas as pd
 from PIL import Image
-from pathlib import Path
 from torch.utils.data import Dataset
-import os
 
 data_dir = Path("data")
 images_dir = data_dir / "images"
