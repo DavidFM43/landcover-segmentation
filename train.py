@@ -1,115 +1,93 @@
-import torch
-from torchvision import transforms
-from torch import nn
-from torch.utils.data import DataLoader
-from tqdm import tqdm
+import argparse
 import os
-import wandb
-
-from dataset import LandcoverDataset, class_labels, class_names
-from model import Unet
-from utils import (
-    class_counts,
-    calculate_conf_matrix,
-    calculate_metrics,
-    dice_loss
-)
-
-# TODO: Refactor this out of the script
-########################################
-import subprocess
-# Installation of the model library
-# Specify the pip command
-command = 'pip install segmentation_models_pytorch'
-# Run the command in the terminal
-process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
-# Print the output of the command (if any)
-if output:
-    print(output.decode())
-# Print the error of the command (if any)
-if error:
-    print(error.decode())
-########################################
 
 import segmentation_models_pytorch as smp
-import argparse
+import torch
+import wandb
 import yaml
+from torch import nn
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from tqdm import tqdm
 
-# Create command-line argument for YAML file name
+from dataset import LandcoverDataset, class_names, label_to_name
+from get_key import wandb_key
+from model import Unet
+from utils import calculate_conf_matrix, calculate_metrics, dice_loss
+
+
+# load configuration
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', help='Path and name of YAML file')
+parser.add_argument("--config", help="Path to configuration file")
 args = parser.parse_args()
-
-# Read YAML file specified in command-line argument
-with open(args.yaml, 'r') as file:
+with open(args.config, "r") as file:
     config = yaml.safe_load(file)
-
-
-# Reproducibility
+# reproducibility
 torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
+# logging
 wandb_log = False
 # data
-train_c = config['train']
-model_c = config['model']
-
-resize_res = train_c['resize_res']
-batch_size = train_c['batch_size']
-epochs = train_c['epochs']
-
-# initialize model
+resize_res = config["resize_res"]
+batch_size = config["batch_size"]
+epochs = config["epochs"]
+# model
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model_architecture = getattr(smp, model_c.pop('architecture'))
-
-model = model_architecture(**model_c)
+model_architecture = getattr(smp, config["model_architecture"])
+model = model_architecture(**config["model_config"])
 model.to(device)
-
-lr = 3e-4
+# optimizer
+lr = config["lr"]
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 save_cp = True
-if save_cp:
-    os.mkdir("checkpoints/")
-
-transform_args = dict(
-    transform=transforms.Resize(resize_res),
-    target_transform=transforms.Resize(resize_res),
+if save_cp: os.mkdir("checkpoints/")
+# data transformation
+transform = transforms.Compose(
+    [
+        transforms.Resize(resize_res),
+        transforms.ToTensor(),
+        transforms.Normalize([0.4085, 0.3798, 0.2822], [0.1410, 0.1051, 0.0927]),
+    ]
 )
+target_transform = transforms.Compose(
+    [
+        transforms.Resize(resize_res),
+        transforms.ToTensor(),
+    ]
+)
+# datasets
+ds = LandcoverDataset(transform=transform, target_transform=target_transform)
+train_ds, valid_ds, test_ds = torch.utils.data.random_split(ds, [454, 207, 142])
 loader_args = dict(
     batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True, shuffle=True
 )
-# init datasets and dataloaders
-train_dataset = LandcoverDataset(train=True, **transform_args)
-valid_dataset = LandcoverDataset(train=False, **transform_args)
-n_train = len(train_dataset)
-n_val = len(valid_dataset)
-train_dataloader = DataLoader(train_dataset, **loader_args)
-valid_dataloader = DataLoader(valid_dataset, **loader_args)
-
-# count the class labels in the training dataset
-counts = class_counts(train_dataset, transform=transform_args["target_transform"])
-weights = 1 - counts / counts.sum()  # [0.893, 0.427, 0.916, 0.880, 0.966, 0.914, 0.999]
-weights[-1] = 0
-weights = weights.to(device)
-#loss_fn = nn.CrossEntropyLoss(weight=weights)
+# dataloaders
+train_dl = DataLoader(train_ds, **loader_args)
+valid_dl = DataLoader(valid_ds, **loader_args)
+test_dl = DataLoader(test_ds, **loader_args)
+# crossentropy loss fn weights
+weights = torch.tensor([0.8987, 0.4091, 0.9165, 0.8886, 0.9643, 0.9231, 0.0], device=device)
+# loss_fn = nn.CrossEntropyLoss(weight=weights)
 print("CE weights:", weights.tolist())
 
 # log training and data config
 if wandb_log:
-    wandb.login(key="2699e8522063dc2ad0f359c8230e5cc09db3ebd8")
+    wandb.login(key=wandb_key)
     # TODO: Add entity parameter to log to the team account
     wandb.init(
         tags=["baseline"],
-        notes="",
-        project="landcover-segmentation",
+        entity="landcover-classification",
+        notes="TESTING RUN",
+        project="ml-experiments",
         config=dict(
             ce_weights=weights,
             epochs=epochs,
             batch_size=batch_size,
             resize_res=resize_res,
             optimizer=type(optimizer).__name__,
-            loss_fn="DiceLoss",
+            # TODO: Automatically put loss fn name
+            loss_fn="dice loss",
             lr=lr,
             model=type(model).__name__,
             num_workers=os.cpu_count(),
@@ -122,8 +100,8 @@ print(
     Epochs:            {epochs}
     Batch size:        {batch_size}
     Learning rate:     {lr}
-    Training size:     {len(train_dataloader) * batch_size} 
-    Validation size:   {len(valid_dataloader) * batch_size}
+    Training size:     {len(train_ds)} 
+    Validation size:   {len(valid_ds)}
     Device:            {device}
     Images resolution: {resize_res}
     """
@@ -135,14 +113,15 @@ for epoch in range(1, epochs + 1):
     conf_matrix.zero_()
     # training loop
     model.train()
-    with tqdm(total=n_train, desc=f"Train epoch {epoch}/{epochs}", unit="img") as pb:
-        for batch, (X, y) in enumerate(train_dataloader):
+    with tqdm(
+        total=len(train_ds), desc=f"Train epoch {epoch}/{epochs}", unit="img"
+    ) as pb:
+        for batch, (X, y) in enumerate(train_dl):
             X, y = X.to(device), y.to(device)
             # forward pass
             logits = model(X)
-
-            loss = dice_loss(logits,y, weight=weights )
-            #loss = loss_fn(logits, y)
+            loss = dice_loss(logits, y, weight=weights)
+            # loss = loss_fn(logits, y)
             # backward pass
             optimizer.zero_grad()
             loss.backward()
@@ -168,14 +147,16 @@ for epoch in range(1, epochs + 1):
     val_loss = 0.0
     model.eval()
     pred_table = wandb.Table(columns=["ID", "Image"])  # table of prediction masks
-    with tqdm(total=n_val, desc=f"Valid epoch {epoch}/{epochs}", unit="img") as pb:
+    with tqdm(
+        total=len(valid_ds), desc=f"Valid epoch {epoch}/{epochs}", unit="img"
+    ) as pb:
         with torch.no_grad():
-            for batch, (X, y) in enumerate(valid_dataloader):
+            for batch, (X, y) in enumerate(valid_dl):
                 X, y = X.to(device), y.to(device)
                 # forward pass
                 logits = model(X)
                 loss = dice_loss(logits, y, weight=weights)
-                #loss = loss_fn(logits, y)
+                # loss = loss_fn(logits, y)
                 val_loss += loss.item()
                 # log prediction matrix
                 conf_matrix += calculate_conf_matrix(logits, y)
@@ -189,17 +170,17 @@ for epoch in range(1, epochs + 1):
                             masks={
                                 "predictions": {
                                     "mask_data": pred[idx].cpu().numpy(),
-                                    "class_labels": class_labels,
+                                    "class_labels": label_to_name,
                                 },
                                 "ground_truth": {
                                     "mask_data": y[idx].cpu().numpy(),
-                                    "class_labels": class_labels,
+                                    "class_labels": label_to_name,
                                 },
                             },
                         )
                         pred_table.add_data(id, overlay_image)
                 pb.update(X.shape[0])  # update validation progress bar
-        val_loss /= len(valid_dataloader)
+        val_loss /= len(valid_dl)
     if wandb_log:
         metrics_dict = calculate_metrics("val", conf_matrix, class_names)
         wandb.log(
