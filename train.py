@@ -68,7 +68,7 @@ valid_dl = DataLoader(valid_ds, **loader_args)
 test_dl = DataLoader(test_ds, **loader_args)
 # crossentropy loss fn weights
 weights = torch.tensor([0.8987, 0.4091, 0.9165, 0.8886, 0.9643, 0.9231, 0.0], device=device)
-# loss_fn = nn.CrossEntropyLoss(weight=weights)
+loss_fn = nn.CrossEntropyLoss(weight=weights)
 print("CE weights:", weights.tolist())
 
 # log training and data config
@@ -87,7 +87,7 @@ if wandb_log:
             resize_res=resize_res,
             optimizer=type(optimizer).__name__,
             # TODO: Automatically put loss fn name
-            loss_fn="dice loss",
+            loss_fn="crossentropy",
             lr=lr,
             model=type(model).__name__,
             num_workers=os.cpu_count(),
@@ -120,8 +120,8 @@ for epoch in range(1, epochs + 1):
             X, y = X.to(device), y.to(device)
             # forward pass
             logits = model(X)
-            loss = dice_loss(logits, y, weight=weights)
-            # loss = loss_fn(logits, y)
+            # loss = dice_loss(logits, y, weight=weights)
+            loss = loss_fn(logits, y)
             # backward pass
             optimizer.zero_grad()
             loss.backward()
@@ -155,8 +155,8 @@ for epoch in range(1, epochs + 1):
                 X, y = X.to(device), y.to(device)
                 # forward pass
                 logits = model(X)
-                loss = dice_loss(logits, y, weight=weights)
-                # loss = loss_fn(logits, y)
+                # loss = dice_loss(logits, y, weight=weights)
+                loss = loss_fn(logits, y)
                 val_loss += loss.item()
                 # log prediction matrix
                 conf_matrix += calculate_conf_matrix(logits, y)
