@@ -38,7 +38,7 @@ model_architecture = getattr(smp, config["model_architecture"])
 model = model_architecture(**config["model_config"])
 model.to(device)
 # optimizer
-lr = config["lr"]
+lr = float(config["lr"])
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 save_cp = True
 if save_cp: os.mkdir("checkpoints/")
