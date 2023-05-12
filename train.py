@@ -110,7 +110,7 @@ print(
     """
 )
 
-# create confussion matrix
+# create confusion matrix
 # columns are the predictions and rows are the real labels
 conf_matrix = torch.zeros((7, 7), device=device)
 for epoch in range(1, epochs + 1):
