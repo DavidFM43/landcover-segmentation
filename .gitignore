@@ -166,7 +166,9 @@ cython_debug/
 */wandb/
 # scketch
 *.excalidraw
+test.ipynb
 # wandb_key
 key.py
 # obsidian
 /notes/.obsidian
+/notes/papers
