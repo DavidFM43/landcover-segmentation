@@ -56,7 +56,16 @@ The dataset consists of a total of 803 satellite images of 2444x2444 pixels, eac
 | Unknown| Clouds and others|
 
 ## Model
+
+Vanilla UNet architecture from the original paper.
+
+- Reproducibility: To ensure the reproducibility of trainings in PyTorch, it's necessary to take some measures. First, a manual seed is set for generating random numbers, which ensures that the numbers generated in each run are always the same. In addition, the cuDNN optimization is disabled, which although it can improve performance, can produce non-deterministic results. By disabling this optimization, performance is ensured to be more consistent across different systems. Finally, the cuDNN determination is activated, which guarantees that the same results are generated in each run.
+ 
+
 ## Training
+
+The training parameters are stored in a YAML file so that each parameter of the experiments is documented and the same experiment can be reproduced at any time.
+
 ## Evaluation
 ## Inference
 ## References
