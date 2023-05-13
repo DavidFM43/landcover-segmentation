@@ -12,4 +12,5 @@
 - Batch size: 5-8
 
 **Preguntas**
-- ¿Que encoder usar?
+- (David)¿Que encoder usar?
+- (Eguar) El encoder lo que hace es abstraer mas caracteristicas, en el paper usan Resnet50. Pero mas allá de saber cual encoder usar me gustaría responder a mostar los beneficios explicitos que tiene al agregar le un encoder a nuestro modelo base. 
