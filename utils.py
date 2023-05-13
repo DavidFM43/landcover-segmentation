@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 
 class UnNormalize(torchvision.transforms.Normalize):
+    """Transformation that reverts Normalization transformation given original mean and std."""
     def __init__(self, mean, std, *args, **kwargs):
         new_mean = [-m / s for m, s in zip(mean, std)]
         new_std = [1 / s for s in std]
