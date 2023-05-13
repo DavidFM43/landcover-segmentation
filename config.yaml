@@ -1,15 +1,12 @@
-# training configuration
-train:
-# data
-  resize_res: 512
-  batch_size: 32
-  epochs: 1
+resize_res: 512
+batch_size: 8
+epochs: 1
+lr: 3e-4
 
-# model configuration
-model:
-  architecture: "Unet"
+model_architecture: "Unet"
+
+model_config:
   encoder_name: "resnet34"
   encoder_weights: "imagenet"
   in_channels: 3
   classes: 7
-  activation: "softmax"

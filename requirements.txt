@@ -1,9 +1,6 @@
-black==23.3.0
+ipykernel==6.22.0
 kaggle==1.5.13
 matplotlib==3.7.1
 pandas==2.0.0
-pip-chill==1.0.3
-scikit-learn==1.2.2
-torchaudio==2.0.1+cpu
-torchvision==0.15.1+cpu
+segmentation-models-pytorch==0.3.2
 wandb==0.15.0

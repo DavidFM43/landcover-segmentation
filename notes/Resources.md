@@ -12,6 +12,6 @@ La idea ahora es leer cada paper pero mas importante aún, orientar la lectura a
 - [Ultra-high Resolution Image Segmentation via Locality-aware Context Fusion and Alternating Local Enhancement](https://paperswithcode.com/paper/from-contexts-to-locality-ultra-high)
 - https://ieeexplore.ieee.org/abstract/document/10097646
 - https://openaccess.thecvf.com/content_CVPRW_2020/papers/w11/Russwurm_Meta-Learning_for_Few-Shot_Land_Cover_Classification_CVPRW_2020_paper.pdf
+- https://openaccess.thecvf.com/content_CVPR_2019/papers/Chen_Collaborative_Global-Local_Networks_for_Memory-Efficient_Segmentation_of_Ultra-High_Resolution_Images_CVPR_2019_paper.pdf
 
-### **Ultra-high Resolution Image Segmentation via Locality-aware Context Fusion and Alternating Local Enhancement**
-- 
+

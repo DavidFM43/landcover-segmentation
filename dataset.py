@@ -1,40 +1,31 @@
-import torch
-from torch.utils.data import Dataset
-from torchvision.io import read_image
-
-import pandas as pd
-
-from sklearn.model_selection import train_test_split
-
+import os
 from pathlib import Path
 
-## When running local
-# data_dir = Path("/data/raw")
-# masks_dir = Path("/data/interm")
+import pandas as pd
+from PIL import Image
+from torch.utils.data import Dataset
 
-data_dir = Path("/kaggle/input/deepglobe-land-cover-classification-dataset")
-masks_dir = Path("/kaggle/input/processed-masks")
-satimgs_dir = data_dir / "train"
-masks_dir = masks_dir / "train_masks"
-annotations_file = pd.read_csv(data_dir / "metadata.csv")
+data_dir = Path("data")
+images_dir = data_dir / "images"
+masks_dir = data_dir / "masks"
 classes = pd.read_csv(data_dir / "class_dict.csv")
 
-# split into train and test sets
-image_ids = annotations_file[annotations_file["split"] == "train"]["image_id"].values
-train_ids, test_ids = train_test_split(
-    image_ids, train_size=0.8, shuffle=True, random_state=42
-)
-
-# class rgb values
-class_colors = [tuple(row[1:].tolist()) for _, row in classes.iterrows()]
+# refactor this guys
+class_rgb_colors = [tuple(row[1:].tolist()) for _, row in classes.iterrows()]
 class_names = classes["name"].tolist()
-class_labels = {idx: name for idx, name in enumerate(class_names)}
+label_to_name = {idx: name for idx, name in enumerate(class_names)}
 
 
 class LandcoverDataset(Dataset):
-    def __init__(self, train, satimgs_dir=satimgs_dir, masks_dir=masks_dir, transform=None, target_transform=None):
-        self.image_ids = train_ids if train else test_ids
-        self.satimgs_dir = satimgs_dir
+    def __init__(
+        self,
+        images_dir=images_dir,
+        masks_dir=masks_dir,
+        transform=None,
+        target_transform=None,
+    ):
+        self.image_ids = [f.split("_")[0] for f in os.listdir(images_dir)]
+        self.images_dir = images_dir
         self.masks_dir = masks_dir
         self.transform = transform
         self.target_transform = target_transform
@@ -44,18 +35,14 @@ class LandcoverDataset(Dataset):
 
     def __getitem__(self, idx):
         image_id = self.image_ids[idx]
-        sat_img = read_image(str(self.satimgs_dir / f"{image_id}_sat.jpg")).float()
-
-        # TODO: Probably need to refactor using torchvision transforms
-        # TODO: Normalize with the mean and std of the dataset
-        with torch.no_grad():
-            sat_img = sat_img / 255.0  # scale images
-
-        mask = read_image(str(self.masks_dir / f"{image_id}_mask.png")).long()
+        image_path = self.images_dir / f"{image_id}_sat.jpg"
+        mask_path = self.masks_dir / f"{image_id}_mask.png"
+        sat_img = Image.open(image_path)
+        mask = Image.open(mask_path)
 
         if self.transform is not None:
             sat_img = self.transform(sat_img)
         if self.target_transform is not None:
             mask = self.target_transform(mask)
 
-        return sat_img, mask.squeeze()
+        return sat_img, mask.squeeze().long()

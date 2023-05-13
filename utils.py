@@ -1,7 +1,16 @@
 import torch
 import torch.nn.functional as F
 from torchvision.utils import draw_segmentation_masks
-from torchvision.io import read_image
+import torchvision
+from tqdm import tqdm
+
+
+class UnNormalize(torchvision.transforms.Normalize):
+    """Transformation that reverts Normalization transformation given original mean and std."""
+    def __init__(self, mean, std, *args, **kwargs):
+        new_mean = [-m / s for m, s in zip(mean, std)]
+        new_std = [1 / s for s in std]
+        super().__init__(new_mean, new_std, *args, **kwargs)
 
 
 @torch.no_grad()
@@ -59,30 +68,55 @@ def label_to_rgb(mask, class_colors):
 
 
 @torch.no_grad()
-def class_counts(dataset, transform=None, num_classes=7):
+def class_counts(dataset, num_classes=7):
     """
     Counts the number of pixels of each class.
     """
-    counts = torch.zeros((7,), dtype=torch.int64)
-    for image_id in dataset.image_ids:
-        if transform is not None:
-            mask = transform(
-                read_image(str(dataset.masks_dir / f"{image_id}_mask.png"))
-            )
-        else:
-            mask = read_image(str(dataset.masks_dir / f"{image_id}_mask.png"))
-        counts += torch.bincount(mask.view(-1), minlength=num_classes)
+    train_dl = torch.utils.data.DataLoader(
+        dataset, batch_size=30, shuffle=False, num_workers=2
+    )
+    counts = torch.zeros((num_classes,), dtype=torch.int64)
+    with tqdm(desc="Class counts calculation", total=len(dataset)) as pbar:
+        for X, y in train_dl:
+            counts += torch.bincount(y.view(-1), minlength=num_classes)
+            pbar.update(X.shape[0])
     return counts
+
+
+def calculate_channel_stats(ds):
+    """
+    Calculates the mean and standard deviation of each color channel in the dataset.
+    """
+    h, w = ds[0][0].shape[1:]
+    dl = torch.utils.data.DataLoader(ds, batch_size=30, shuffle=False, num_workers=2)
+    mean = 0
+    with tqdm(desc="Channel-wise mean calculation", total=len(ds)) as pbar:
+        for X, y in dl:
+            mean += X.sum([0, 2, 3])
+            pbar.update(X.shape[0])
+    mean /= h * w * len(ds)
+
+    std = 0
+    with tqdm(desc="Channel-wise std calculation", total=len(ds)) as pbar:
+        for X, y in dl:
+            std += ((X - mean.view(1, -1, 1, 1)) ** 2).sum([0, 2, 3])
+            pbar.update(X.shape[0])
+    std /= h * w * len(ds)
+    std **= 0.5
+
+    return mean, std
 
 
 @torch.no_grad()
 def calculate_conf_matrix(logits, y, num_classes=7):
     """
-    Calculate classifications per label
-    transform both the predictions and targets to one hot encoding,
-    perform an element-wise product between a fixed target class and
+    Calculates the confusison matrix of the labels and predictions.
+    The rows are true labels and columns are predictions.
+
+    Especifically transform both the predictions and targets to one hot encoding,
+    perform an element-wise product between a fixed label class and
     all the class predictions, then sum over all the dims except for the
-    class dim in order to get the clasifications of the fixed target class
+    class dim in order to get the predictions given the fixed true class.
     """
     pred = torch.argmax(logits, 1)
     ohe_pred = label_to_onehot(pred, num_classes=num_classes)
@@ -125,12 +159,13 @@ def flatten(tensor):
     # number of channels
     C = tensor.size(1)
     # new axis order
-    axis_order = (1, 0) + tuple(range(2, tensor.dim())) # para que este orden?
+    axis_order = (1, 0) + tuple(range(2, tensor.dim()))  # para que este orden?
     # Transpose: (N, C, D, H, W) -> (C, N, D, H, W)
     transposed = tensor.permute(axis_order)
     # Flatten: (C, N, D, H, W) -> (C, N * D * H * W)
-    return transposed.contiguous().view(C, -1) #memoria contigua y operaciones lineales
-
+    return transposed.contiguous().view(
+        C, -1
+    )  # memoria contigua y operaciones lineales
 
 
 def dice_loss(input, target, epsilon=1e-6, weight=None):
@@ -148,9 +183,11 @@ def dice_loss(input, target, epsilon=1e-6, weight=None):
     Our target is in label encode to use crossentropy. 
     For dice loss we need our target in one hot with the 7 dimensions 
     """
-    target= label_to_onehot(target,7)
+    target = label_to_onehot(target, 7)
     # input and target shapes must match
-    assert input.size() == target.size(), "'input' and 'target' must have the same shape"
+    assert (
+        input.size() == target.size()
+    ), "'input' and 'target' must have the same shape"
 
     input = flatten(input)
     target = flatten(target)
@@ -162,5 +199,5 @@ def dice_loss(input, target, epsilon=1e-6, weight=None):
         intersect = weight * intersect
 
     # here we can use standard dice (input + target).sum(-1) or extension (see V-Net) (input^2 + target^2).sum(-1)
-    denominator = (input *input).sum(-1) + (target*target ).sum(-1)
-    return 1 -sum(2 * (intersect / denominator.clamp(min=epsilon)))
+    denominator = (input * input).sum(-1) + (target * target).sum(-1)
+    return 1 - sum(2 * (intersect / denominator.clamp(min=epsilon)))
