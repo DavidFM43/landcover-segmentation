@@ -77,7 +77,6 @@ print("CE weights:", weights.tolist())
 # log training and data config
 if wandb_log:
     wandb.login(key=wandb_key)
-    # TODO: Add entity parameter to log to the team account
     wandb.init(
         tags=["baseline"],
         entity="landcover-classification",
