@@ -22,7 +22,7 @@ In case you don´t have a machine with GPU, which is highly needed for our case,
 
 **Note:** In case you decided to run the training script form Kaggle, you can skip this step.
 
-The dataset from the DeepGlobe 2018 Landcover Classification challenge is hosted in Kaggle. For ease of use you can just run the python script `prepare.py` that is located in the `data` folder. This script will download the dataset using the python Kaggle API and prepare it for training. Remember that in order for this to work you need to have the Kaggle API downloaded (`pip install -r requirements.txt`) and also have your kaggle private key properly set up in your machine. After that you can run the following command from the root of the project:
+The dataset from the DeepGlobe 2018 Landcover Classification challenge is hosted in Kaggle. For ease of use you can just run the python script `prepare.py` that is located in the `data` folder. This script will download the dataset using the python Kaggle API and prepare it for training. Remember that in order for this to work you need to have the Kaggle API downloaded (`pip install -r requirements.txt`) and also have your [kaggle private key](https://www.kaggle.com/docs/api) properly set up in your machine. After that you can run the following command from the root of the project:
 ```python
 python3 data/prepare.py
 ```

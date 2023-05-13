@@ -168,3 +168,5 @@ cython_debug/
 *.excalidraw
 # wandb_key
 key.py
+# obsidian
+/notes/.obsidian
