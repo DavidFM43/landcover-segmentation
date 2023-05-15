@@ -47,4 +47,4 @@ class LandcoverDataset(Dataset):
         if self.target_transform is not None:
             mask_resize = self.target_transform(mask)
         transform = transforms.ToTensor()
-        return sat_img, mask_resize.squeeze().long(), transforms(mask)
+        return sat_img, mask_resize.squeeze().long(), transform(mask)
