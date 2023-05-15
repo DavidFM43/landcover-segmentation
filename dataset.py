@@ -4,6 +4,8 @@ from pathlib import Path
 import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
+from torchvision import transforms
+
 
 data_dir = Path("data")
 images_dir = data_dir / "images"
@@ -44,5 +46,5 @@ class LandcoverDataset(Dataset):
             sat_img = self.transform(sat_img)
         if self.target_transform is not None:
             mask_resize = self.target_transform(mask)
-
-        return sat_img, mask_resize.squeeze().long(), mask.ToTensor()
+        transform = transforms.ToTensor()
+        return sat_img, mask_resize.squeeze().long(), transforms(mask)
