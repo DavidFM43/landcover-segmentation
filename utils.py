@@ -108,7 +108,7 @@ def calculate_channel_stats(ds):
 
 
 @torch.no_grad()
-def calculate_conf_matrix(logits, y, num_classes=7):
+def calculate_conf_matrix(pred, y, num_classes=7):
     """
     Calculates the confusison matrix of the labels and predictions.
     The rows are true labels and columns are predictions.
@@ -118,7 +118,6 @@ def calculate_conf_matrix(logits, y, num_classes=7):
     all the class predictions, then sum over all the dims except for the
     class dim in order to get the predictions given the fixed true class.
     """
-    pred = torch.argmax(logits, 1)
     ohe_pred = label_to_onehot(pred, num_classes=num_classes)
     ohe_y = label_to_onehot(y, num_classes=num_classes)
     return torch.stack(

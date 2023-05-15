@@ -132,9 +132,10 @@ for epoch in range(1, epochs + 1):
             loss.backward()
             optimizer.step()
 
+            pred =torch.argmax(logits, 1).detach()
             # resize to evaluate with the original image 
-            logits = interpolate(logits, size=(2448,2448), mode='bilinear', align_corners=False)
-            conf_matrix += calculate_conf_matrix(logits, z)
+            pred = interpolate(pred, size=(2448,2448), mode='bilinear', align_corners=False)
+            conf_matrix += calculate_conf_matrix(pred, z)
             # log the train loss
             if wandb_log:
                 wandb.log({"train/loss": loss.item()})
@@ -170,8 +171,8 @@ for epoch in range(1, epochs + 1):
 
                 # log prediction matrix
                 # resize to evaluate with the original image 
-                logits = interpolate(logits, size=(2448,2448), mode='bilinear', align_corners=False)
-                conf_matrix += calculate_conf_matrix(logits, z)
+                pred = interpolate(pred, size=(2448,2448), mode='bilinear', align_corners=False)
+                conf_matrix += calculate_conf_matrix(pred, z)
                 
                 # log image predictions at the last validation epoch
                 if wandb_log and epoch == epochs:
