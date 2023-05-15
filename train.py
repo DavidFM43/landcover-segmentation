@@ -174,7 +174,7 @@ for epoch in range(1, epochs + 1):
 
                 # log prediction matrix
                 # resize to evaluate with the original image 
-                pred_transform(pred)
+                pred = pred_transform(pred)
                 conf_matrix += calculate_conf_matrix(pred, z)
                 
                 # log image predictions at the last validation epoch
