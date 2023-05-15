@@ -5,8 +5,10 @@ import segmentation_models_pytorch as smp
 import torch
 import wandb
 import yaml
+
 from torch import nn
 from torch.utils.data import DataLoader
+from torch.nn.functional import interpolate
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -119,8 +121,8 @@ for epoch in range(1, epochs + 1):
     with tqdm(
         total=len(train_ds), desc=f"Train epoch {epoch}/{epochs}", unit="img"
     ) as pb:
-        for batch, (X, y) in enumerate(train_dl):
-            X, y = X.to(device), y.to(device)
+        for batch, (X, y, z) in enumerate(train_dl):
+            X, y, z = X.to(device), y.to(device), z.to(device)
             # forward pass
             logits = model(X)
             # loss = dice_loss(logits, y, weight=weights)
@@ -129,7 +131,10 @@ for epoch in range(1, epochs + 1):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            conf_matrix += calculate_conf_matrix(logits, y)
+
+            # resize to evaluate with the original image 
+            logits = interpolate(logits, size=(2448,2448), mode='bilinear', align_corners=False)
+            conf_matrix += calculate_conf_matrix(logits, z)
             # log the train loss
             if wandb_log:
                 wandb.log({"train/loss": loss.item()})
@@ -154,16 +159,20 @@ for epoch in range(1, epochs + 1):
         total=len(valid_ds), desc=f"Valid epoch {epoch}/{epochs}", unit="img"
     ) as pb:
         with torch.no_grad():
-            for batch, (X, y) in enumerate(valid_dl):
-                X, y = X.to(device), y.to(device)
+            for batch, (X, y, z) in enumerate(valid_dl):
+                X, y, z = X.to(device), y.to(device), z.to(device)
                 # forward pass
                 logits = model(X)
                 # loss = dice_loss(logits, y, weight=weights)
                 loss = loss_fn(logits, y)
                 val_loss += loss.item()
-                # log prediction matrix
-                conf_matrix += calculate_conf_matrix(logits, y)
                 pred = torch.argmax(logits, 1).detach()
+
+                # log prediction matrix
+                # resize to evaluate with the original image 
+                logits = interpolate(logits, size=(2448,2448), mode='bilinear', align_corners=False)
+                conf_matrix += calculate_conf_matrix(logits, z)
+                
                 # log image predictions at the last validation epoch
                 if wandb_log and epoch == epochs:
                     for idx in range(len(X)):
@@ -176,7 +185,7 @@ for epoch in range(1, epochs + 1):
                                     "class_labels": label_to_name,
                                 },
                                 "ground_truth": {
-                                    "mask_data": y[idx].cpu().numpy(),
+                                    "mask_data": z[idx].cpu().numpy(),
                                     "class_labels": label_to_name,
                                 },
                             },

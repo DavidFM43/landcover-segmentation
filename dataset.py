@@ -43,6 +43,6 @@ class LandcoverDataset(Dataset):
         if self.transform is not None:
             sat_img = self.transform(sat_img)
         if self.target_transform is not None:
-            mask = self.target_transform(mask)
+            mask_resize = self.target_transform(mask)
 
-        return sat_img, mask.squeeze().long()
+        return sat_img, mask_resize.squeeze().long(), mask
