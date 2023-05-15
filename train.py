@@ -47,6 +47,7 @@ if save_cp: os.mkdir("checkpoints/")
 # data transformation
 mean = [0.4085, 0.3798, 0.2822]
 std = [0.1410, 0.1051, 0.0927]
+
 transform = transforms.Compose(
     [
         transforms.Resize(resize_res),
@@ -60,6 +61,8 @@ target_transform = transforms.Compose(
         transforms.PILToTensor(),
     ]
 )
+pred_transform = transforms.Resize((2448, 2448)) 
+
 undo_normalization = UnNormalize(mean, std)
 # datasets
 ds = LandcoverDataset(transform=transform, target_transform=target_transform)
@@ -134,7 +137,7 @@ for epoch in range(1, epochs + 1):
 
             pred =torch.argmax(logits, 1).detach()
             # resize to evaluate with the original image 
-            pred = interpolate(pred, size=(2448,2448), mode='bilinear', align_corners=False)
+            pred = pred_transform(pred)
             conf_matrix += calculate_conf_matrix(pred, z)
             # log the train loss
             if wandb_log:
@@ -171,7 +174,7 @@ for epoch in range(1, epochs + 1):
 
                 # log prediction matrix
                 # resize to evaluate with the original image 
-                pred = interpolate(pred, size=(2448,2448), mode='bilinear', align_corners=False)
+                pred_transform(pred)
                 conf_matrix += calculate_conf_matrix(pred, z)
                 
                 # log image predictions at the last validation epoch
