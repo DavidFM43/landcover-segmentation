@@ -30,7 +30,7 @@ with open(args.config, "r") as file:
 # config = {
 #     "downsize_res": 512,
 #     "batch_size": 6,
-#     "epochs": 40,
+#     "epochs": 20,
 #     "lr": 3e-4,
 #     "model_architecture": "Unet",
 #     "model_config": {
@@ -53,7 +53,8 @@ downsize_res = config["downsize_res"]
 batch_size = config["batch_size"]
 epochs = config["epochs"]
 # evaluation
-max_log_imgs = 20
+max_log_imgs = 7
+log_epochs = 10
 # model
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model_architecture = getattr(smp, config["model_architecture"])
@@ -103,7 +104,7 @@ if wandb_log:
     wandb.init(
         tags=["baseline"],
         entity="landcover-classification",
-        notes="TESTING RUN",
+        notes="Same as run 58 but with improved prediction viz",
         project="ml-experiments",
         config=dict(
             ce_weights=weights.tolist(),
@@ -178,8 +179,10 @@ for epoch in range(1, epochs + 1):
                 conf_matrix += calculate_conf_matrix(preds, y)
 
                 # log image predictions at the last validation epoch
-                if wandb_log and num_log_imgs < max_log_imgs:
+                if wandb_log and epochs % log_epochs == 0:
                     for idx in range(len(X)):
+                        if num_log_imgs >= max_log_imgs:
+                            break
                         num_log_imgs += 1
                         img_id = (idx + 1) + (batch * batch_size)
                         sat_img = undo_normalization(X[idx])
@@ -198,7 +201,7 @@ for epoch in range(1, epochs + 1):
                                 },
                             },
                         )
-                        wandb.log({f"id_{img_id}": overlay_image})
+                        wandb.log({f"Image No. {img_id}": overlay_image})
                 pb.update(X.shape[0])  # update validation progress bar
         val_loss /= len(valid_dl)
 
@@ -212,4 +215,4 @@ for epoch in range(1, epochs + 1):
             }
         )
         wandb.save("checkpoints/*")
-        wandb.finish()
+wandb.finish()
