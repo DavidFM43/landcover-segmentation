@@ -4,15 +4,13 @@ from pathlib import Path
 import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision import transforms
-
 
 data_dir = Path("data")
 images_dir = data_dir / "images"
 masks_dir = data_dir / "masks"
 classes = pd.read_csv(data_dir / "class_dict.csv")
 
-# refactor this guys
+# TODO: refactor this guys
 class_rgb_colors = [tuple(row[1:].tolist()) for _, row in classes.iterrows()]
 class_names = classes["name"].tolist()
 label_to_name = {idx: name for idx, name in enumerate(class_names)}
@@ -45,6 +43,5 @@ class LandcoverDataset(Dataset):
         if self.transform is not None:
             sat_img = self.transform(sat_img)
         if self.target_transform is not None:
-            mask_resize = self.target_transform(mask)
-        transform = transforms.ToTensor()
-        return sat_img, mask_resize.squeeze().long(), transform(mask).squeeze()
+            mask = self.target_transform(mask).squeeze().long()
+        return sat_img, mask

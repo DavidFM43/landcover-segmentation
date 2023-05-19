@@ -1,6 +1,6 @@
-resize_res: 512
-batch_size: 4
-epochs: 1
+downsize_res: 512
+batch_size: 6
+epochs: 40
 lr: 3e-4
 
 model_architecture: "Unet"
