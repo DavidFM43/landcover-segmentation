@@ -50,7 +50,7 @@ api.dataset_download_cli(ds_name, path=data_path, unzip=True)
 # clean folders
 shutil.rmtree("valid")
 shutil.rmtree("test")
-shutil.rmtree("metadata.csv")
+os.remove("metadata.csv")
 os.rename("train", "images")
 os.mkdir(processed_masks_dir)
 os.mkdir(raw_masks_dir)

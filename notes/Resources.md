@@ -4,7 +4,7 @@ Recolecte algunos recursos que creo que me gustaría revisar después, pero esto
 - Model selection tips: https://deci.ai/blog/deep-learning-model-selection-tips/. 
 - Repositorio "**[deepglobe_land_cover_classification_with_deeplabv3plus](https://github.com/GeneralLi95/deepglobe_land_cover_classification_with_deeplabv3plus)**".
 - Imagenet Sota: https://deci.ai/blog/resnet50-how-to-achieve-sota-accuracy-on-imagenet/
-
+- SEN12MS – A CURATED DATASET OF GEOREFERENCED MULTI-SPECTRAL SENTINEL-1/2 IMAGERY FOR DEEP LEARNING AND DATA FUSION: https://isprs-annals.copernicus.org/articles/IV-2-W7/153/2019/isprs-annals-IV-2-W7-153-2019.pdf
 
 ## Papers
 Para entender mas acerca del problema que estamos intentando resolver, el cual es específicamente la tarea de *Landcover Classification* con el dataset de *DeepGlobe*, decidí buscar papers en los cuales resolvieran exactamente este mismo problema, los papers que encontré son los siguientes:

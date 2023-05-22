@@ -6,4 +6,4 @@ if pkgutil.find_loader("kaggle_secrets") is not None:
     wandb_key = UserSecretsClient().get_secret("wandb_key")
 # when running locally
 else:
-    from get_key import wandb_key
+    from key import wandb_key
