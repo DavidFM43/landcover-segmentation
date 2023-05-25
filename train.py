@@ -18,10 +18,16 @@ from utils import calculate_conf_matrix, calculate_metrics, UnNormalize
 
 # load configuration
 parser = argparse.ArgumentParser()
-parser.add_argument("--config", help="Path to configuration file")
 parser.add_argument(
-    "--log", help="Path to configuration file", type=bool, default=False
+    "--config", help="Path to configuration file", default="config.yaml"
 )
+parser.add_argument(
+    "--log",
+    help="Log training to Weights and Biases",
+    action=argparse.BooleanOptionalAction,
+    default=False,
+)
+
 args = parser.parse_args()
 with open(args.config, "r") as file:
     config = yaml.safe_load(file)
@@ -115,9 +121,8 @@ if wandb_log:
         ),
     )
     wandb.watch(model, log_freq=10)  # record model gradients every 10 steps
-
-print("Run Config")
-pprint.pprint(dict(wandb.config))
+    print("Run Config")
+    pprint.pprint(dict(wandb.config))
 
 # confusion matrix: columns are the predictions and rows are the real labels
 conf_matrix = torch.zeros((7, 7), device=device)
