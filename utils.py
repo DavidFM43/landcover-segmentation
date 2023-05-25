@@ -137,11 +137,13 @@ def calculate_metrics(stage, conf_matrix, class_names):
     iou = tp / (n_class + fp + 1e-5)
     # log metrics average and per class
     return {
+        # ignore unknown class
         f"{stage}/mean_accuracy": accuracy[:-1].mean().item(),
         **{
             f"{stage}/accuracy_{c_name}": acc
             for c_name, acc in zip(class_names, accuracy.tolist())
         },
+        # ignore unknown class
         f"{stage}/mean_iou": iou[:-1].mean().item(),
         **{
             f"{stage}/iou_{c_name}": iou
