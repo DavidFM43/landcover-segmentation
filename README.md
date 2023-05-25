@@ -37,14 +37,14 @@ data
 
 ### Log training to Weights and Biases
 
-**Locally:** If you want to log to W&B you need create a file named `key.py` in the root of the project and  add a variable named `wandb_key` with your API key. After doing that you simply need to add the argument `--log True ` to the training script `train.py` in order to create a new run to wandb.
+**Locally:** If you want to log to W&B you need create a file named `key.py` in the root of the project and  add a variable named `wandb_key` with your API key. After doing that you simply need to add the argument `--log` to the training script `train.py` in order to create a new run to wandb.
 
-**When running in Kaggle**: If you want to log the training to Weights and Biases you should first add their API key as a Kaggle secret. To do this, go to the "Add-ons" tab and click on "Secrets", then add a new secret with the label "wandb_key" and the value of your private API key. After that is done simple add the `--log True` when running the `train.py` script.
+**When running in Kaggle**: If you want to log the training to Weights and Biases you should first add their API key as a Kaggle secret. To do this, go to the "Add-ons" tab and click on "Secrets", then add a new secret with the label "wandb_key" and the value of your private API key. After that is done simple add the `--log` when running the `train.py` script.
 
 
 ## Dataset
 
-The dataset consists of a total of 803 satellite images of 2444x2444 pixels, each image comes with a segmentation mask that classifies the pixels of the image in the following classes: 
+The dataset consists of a total of 803 satellite images of 2448x2448 pixels, each image comes with a segmentation mask that classifies the pixels of the image in the following classes: 
 |File Name| Explanation / Function |
 |---------|------------|
 |Urban land| Man-made, built up areas with human artifacts|
