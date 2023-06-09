@@ -162,6 +162,7 @@ cython_debug/
 # data
 /data/*/
 /data/*.csv
+!/data/sample_sat_images
 # wandb
 */wandb/
 # scketch
