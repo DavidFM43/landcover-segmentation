@@ -12,7 +12,16 @@ classes = pd.read_csv(data_dir / "class_dict.csv")
 
 # TODO: refactor this guys
 class_rgb_colors = [tuple(row[1:].tolist()) for _, row in classes.iterrows()]
-class_names = classes["name"].tolist()
+# class_names = classes["name"].tolist()
+class_names = [
+    "urban_land",
+    "agriculture_land",
+    "rangeland",
+    "forest_land",
+    "water",
+    "barren_land",
+    "unknown",
+]
 label_to_name = {idx: name for idx, name in enumerate(class_names)}
 
 
