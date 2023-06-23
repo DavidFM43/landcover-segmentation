@@ -171,5 +171,4 @@ test.ipynb
 # wandb_key
 key.py
 # obsidian
-notes/.obsidian/*
-notes/papers/*
+notes/.obsidian
