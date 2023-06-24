@@ -101,7 +101,7 @@ train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
 test_dl = DataLoader(test_ds, shuffle=False, **loader_args)
 # crossentropy loss fn weights
-weight = torch.tensor([0.8987, 0.4091, 1.5, 0.8886, 0.9643, 1.2, 0.0], device=device)
+weight = torch.tensor([0.8987, 0.4091, 0.9165, 0.8886, 0.9643, 0.9231, 0.0], device=device)
 # loss_fn = nn.CrossEntropyLoss(weight=weights)
 loss_fn = torch.hub.load(
 	"adeelh/pytorch-multi-class-focal-loss",
