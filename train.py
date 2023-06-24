@@ -101,9 +101,16 @@ train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
 test_dl = DataLoader(test_ds, shuffle=False, **loader_args)
 # crossentropy loss fn weights
-weights = torch.tensor([0.8987, 0.4091, 1.5, 0.8886, 0.9643, 1.2, 0.0], device=device)
-loss_fn = nn.CrossEntropyLoss(weight=weights)
-print("CE weights:", weights.tolist())
+weight = torch.tensor([0.8987, 0.4091, 1.5, 0.8886, 0.9643, 1.2, 0.0], device=device)
+# loss_fn = nn.CrossEntropyLoss(weight=weights)
+loss_fn = torch.hub.load(
+	"adeelh/pytorch-multi-class-focal-loss",
+	model="FocalLoss",
+	alpha=weight,
+	gamma=2,
+	reduction="mean"
+)
+
 
 # log training and data config
 if wandb_log:
@@ -114,7 +121,7 @@ if wandb_log:
         notes="Change weights of barrenland and rangeland",
         project="ml-experiments",
         config=dict(
-            ce_weights=weights.tolist(),
+            ce_weights=weight.tolist(),
             optimizer=type(optimizer).__name__,
             loss_fn=type(loss_fn).__name__,
             num_workers=os.cpu_count(),
