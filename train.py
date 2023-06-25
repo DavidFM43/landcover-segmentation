@@ -35,7 +35,7 @@ from utils import calculate_conf_matrix, calculate_metrics, UnNormalize
 config = {
     "downsize_res": 512,
     "batch_size": 6,
-    "epochs": 30,
+    "epochs": 40,
     "lr": 3e-4,
     "model_architecture": "Unet",
     "model_config": {
@@ -118,7 +118,7 @@ if wandb_log:
     wandb.init(
         tags=["Unet"],
         entity="landcover-classification",
-        notes="Change weights of barrenland and rangeland",
+        notes="Increase epochs from 30 to 40",
         project="ml-experiments",
         config=dict(
             ce_weights=weight.tolist(),
