@@ -35,7 +35,7 @@ from utils import calculate_conf_matrix, calculate_metrics, UnNormalize
 config = {
     "downsize_res": 512,
     "batch_size": 6,
-    "epochs": 40,
+    "epochs": 50,
     "lr": 3e-4,
     "model_architecture": "Unet",
     "model_config": {
@@ -104,11 +104,11 @@ test_dl = DataLoader(test_ds, shuffle=False, **loader_args)
 weight = torch.tensor([0.8987, 0.4091, 0.9165, 0.8886, 0.9643, 0.9231, 0.0], device=device)
 # loss_fn = nn.CrossEntropyLoss(weight=weights)
 loss_fn = torch.hub.load(
-	"adeelh/pytorch-multi-class-focal-loss",
-	model="FocalLoss",
-	alpha=weight,
-	gamma=2,
-	reduction="mean"
+    "adeelh/pytorch-multi-class-focal-loss",
+    model="FocalLoss",
+    alpha=weight,
+    gamma=2,
+    reduction="mean"
 )
 
 
@@ -118,7 +118,7 @@ if wandb_log:
     wandb.init(
         tags=["Unet"],
         entity="landcover-classification",
-        notes="Increase epochs from 30 to 40",
+        notes="Increase epochs from 30 to 50",
         project="ml-experiments",
         config=dict(
             ce_weights=weight.tolist(),
@@ -132,10 +132,15 @@ if wandb_log:
     wandb.watch(model, log_freq=10)  # record model gradients every 10 steps
     print("Run Config")
     pprint.pprint(dict(wandb.config))
+    # download checkpoints from wandb
+    api = wandb.Api()
+    run = api.run("landcover-classification/ml-experiments/zecg724v")
+    run.file("checkpoints/CP_epoch30.pth").download(replace=True)
+    model.load_state_dict(torch.load("checkpoints/CP_epoch30.pth"))
 
 # confusion matrix: columns are the predictions and rows are the real labels
 conf_matrix = torch.zeros((7, 7), device=device)
-for epoch in range(1, epochs + 1):
+for epoch in range(31, epochs + 1):
     conf_matrix.zero_()
     # training loop
     model.train()
