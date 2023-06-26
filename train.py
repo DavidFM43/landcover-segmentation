@@ -36,7 +36,7 @@ config = {
     "downsize_res": 512,
     "batch_size": 6,
     "epochs": 50,
-    "lr": 3e-4,
+    "lr": 3e-5,
     "model_architecture": "Unet",
     "model_config": {
         "encoder_name": "resnet34",
@@ -118,7 +118,7 @@ if wandb_log:
     wandb.init(
         tags=["Unet"],
         entity="landcover-classification",
-        notes="Increase epochs from 30 to 50",
+        notes="Start from checkpoint and decrease learning rate", 
         project="ml-experiments",
         config=dict(
             ce_weights=weight.tolist(),
