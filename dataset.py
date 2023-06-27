@@ -33,7 +33,7 @@ class LandcoverDataset(Dataset):
         transform=None,
         target_transform=None,
     ):
-        self.image_ids = [f.split("_")[0] for f in os.listdir(images_dir)]
+        self.image_ids = sorted([f.split("_")[0] for f in os.listdir(images_dir)])
         self.images_dir = images_dir
         self.masks_dir = masks_dir
         self.transform = transform
