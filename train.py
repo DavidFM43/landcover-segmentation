@@ -36,7 +36,7 @@ config = {
     "downsize_res": 512,
     "batch_size": 6,
     "epochs": 50,
-    "lr": 3e-5,
+    "lr": 3e-4,
     "model_architecture": "Unet",
     "model_config": {
         "encoder_name": "resnet34",
@@ -118,7 +118,7 @@ if wandb_log:
     wandb.init(
         tags=["Unet"],
         entity="landcover-classification",
-        notes="Start from checkpoint and decrease learning rate", 
+        notes="50 epochs", 
         project="ml-experiments",
         config=dict(
             ce_weights=weight.tolist(),
@@ -133,14 +133,14 @@ if wandb_log:
     print("Run Config")
     pprint.pprint(dict(wandb.config))
     # download checkpoints from wandb
-    api = wandb.Api()
-    run = api.run("landcover-classification/ml-experiments/zecg724v")
-    run.file("checkpoints/CP_epoch30.pth").download(replace=True)
-    model.load_state_dict(torch.load("checkpoints/CP_epoch30.pth"))
+    # api = wandb.Api()
+    # run = api.run("landcover-classification/ml-experiments/zecg724v")
+    # run.file("checkpoints/CP_epoch30.pth").download(replace=True)
+    # model.load_state_dict(torch.load("checkpoints/CP_epoch30.pth"))
 
 # confusion matrix: columns are the predictions and rows are the real labels
 conf_matrix = torch.zeros((7, 7), device=device)
-for epoch in range(31, epochs + 1):
+for epoch in range(0, epochs + 1):
     conf_matrix.zero_()
     # training loop
     model.train()
@@ -197,7 +197,7 @@ for epoch in range(31, epochs + 1):
                 # log prediction matrix
                 conf_matrix += calculate_conf_matrix(preds, y)
 
-                # log image predictions at the last validation epoch
+                # log image predictions
                 if wandb_log and epochs % log_epochs == 0:
                     for idx in range(len(X)):
                         if num_logged_imgs >= max_log_imgs:
