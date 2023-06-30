@@ -47,24 +47,24 @@ config = {
 }
 
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+ 
 # reproducibility
 torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 # logging
-wandb_log = True
-wandb_image_size = 800
-wandb_resize = transforms.Resize(wandb_image_size, antialias=True)
+wandb_log           = True
+wandb_image_size    = 800
+wandb_resize        = transforms.Resize(wandb_image_size, antialias=True)
+checkpoint_log_step = 10
+log_epochs          = 10
+max_log_imgs        = 7
 # data
 downsize_res = config["downsize_res"]
-batch_size = config["batch_size"]
-epochs = config["epochs"]
-checkpoint_log_step = 10
-# evaluation
-max_log_imgs = 7
-log_epochs = 10
+batch_size   = config["batch_size"]
+epochs       = config["epochs"]
 # model
-device = "cuda" if torch.cuda.is_available() else "cpu"
 model_architecture = getattr(smp, config["model_architecture"])
 model = model_architecture(**config["model_config"])
 model.to(device)
@@ -132,7 +132,8 @@ if wandb_log:
     wandb.watch(model, log_freq=10)  # record model gradients every 10 steps
     print("Run Config")
     pprint.pprint(dict(wandb.config))
-    # download checkpoints from wandb
+
+    # TODO: refactor this to a from_pretrained method of the model
     # api = wandb.Api()
     # run = api.run("landcover-classification/ml-experiments/zecg724v")
     # run.file("checkpoints/CP_epoch30.pth").download(replace=True)
@@ -142,31 +143,32 @@ if wandb_log:
 conf_matrix = torch.zeros((7, 7), device=device)
 for epoch in range(0, epochs + 1):
     conf_matrix.zero_()
-    # training loop
     model.train()
-    with tqdm(total=len(train_ds), desc=f"Train epoch {epoch}/{epochs}", unit="img") as pb:
-        for batch, (X, y) in enumerate(train_dl):
-            X, y = X.to(device), y.to(device)
-            y_down = downsize_t(y)
-            X_down = downsize_t(X)
-            # forward pass
-            logits = model(X_down)
-            loss = loss_fn(logits, y_down)
-            # backward pass
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+    pbar = tqdm(total=len(train_ds), desc=f"Train epoch {epoch}/{epochs}", unit="img")
+    # training loop
+    for batch, (X, y) in enumerate(train_dl):
+        X, y = X.to(device), y.to(device)
+        y_down = downsize_t(y)
+        X_down = downsize_t(X)
+        # forward pass
+        logits = model(X_down)
+        loss = loss_fn(logits, y_down)
+        # backward pass
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-            pred = torch.argmax(logits, 1).detach()
-            # resize to evaluate with the original image
-            pred = transforms.functional.resize(pred, y.shape[-2:], antialias=True)
-            conf_matrix += calculate_conf_matrix(pred, y)
-            # log the train loss
-            if wandb_log:
-                wandb.log({"train/loss": loss.item()})
-            # update progress bar and add batch loss as postfix
-            pb.update(X.shape[0])
-            pb.set_postfix(**{"loss (batch)": loss.item()})
+        pred = torch.argmax(logits, 1).detach()
+        # resize to evaluate with the original image
+        pred = transforms.functional.resize(pred, y.shape[-2:], antialias=True)
+        conf_matrix += calculate_conf_matrix(pred, y)
+        # log the train loss
+        if wandb_log:
+            wandb.log({"train/loss": loss.item()})
+        # update progress bar and add batch loss as postfix
+        pbar.update(X.shape[0])
+        pbar.set_postfix(**{"loss (batch)": loss.item()})
+    pbar.close()
 
     if wandb_log:
         metrics_dict = calculate_metrics("train", conf_matrix, class_names)
@@ -174,55 +176,65 @@ for epoch in range(0, epochs + 1):
 
     # save checkpoints
     if epoch % checkpoint_log_step == 0:
+        # TODO: save the optimizer state as well
+        # check this tutorial: https://pytorch.org/tutorials/recipes/recipes/saving_and_loading_a_general_checkpoint.html
         torch.save(model.state_dict(), "checkpoints/" + f"CP_epoch{epoch}.pth")
 
-    # validation loop
+    ## validation
+    # reset the confusion matrix and validation loss
     conf_matrix.zero_()
-    val_loss = 0.0
+    val_loss: float = 0.0
     model.eval()
     num_logged_imgs = 0
-    with tqdm(total=len(valid_ds), desc=f"Valid epoch {epoch}/{epochs}", unit="img") as pb:
+    # validation loop
+    pbar = tqdm(total=len(valid_ds), desc=f"Valid epoch {epoch}/{epochs}", unit="img")
+    for batch, (X, y) in enumerate(valid_dl):
         with torch.no_grad():
-            for batch, (X, y) in enumerate(valid_dl):
-                X, y = X.to(device), y.to(device)
-                X_down = downsize_t(X)
-                y_down = downsize_t(y)
-                # forward pass
-                logits = model(X_down)
-                loss = loss_fn(logits, y_down)
-                val_loss += loss.item()
-                preds = torch.argmax(logits, 1).detach()
-                # resize to evaluate with the original image
-                preds = transforms.functional.resize(preds, y.shape[-2:], antialias=True)
-                # log prediction matrix
-                conf_matrix += calculate_conf_matrix(preds, y)
+            X, y = X.to(device), y.to(device)
+            X_down = downsize_t(X)
+            y_down = downsize_t(y)
+            # forward pass
+            logits = model(X_down)
+            loss = loss_fn(logits, y_down)
+        val_loss += loss.item()
+        preds = torch.argmax(logits, 1).detach()
+        # resize to evaluate with the original image
+        preds = transforms.functional.resize(preds, y.shape[-2:], antialias=True)
+        # log prediction matrix
+        conf_matrix += calculate_conf_matrix(preds, y)
 
-                # log image predictions
-                if wandb_log and epochs % log_epochs == 0:
-                    for idx in range(len(X)):
-                        if num_logged_imgs >= max_log_imgs:
-                            break
-                        num_logged_imgs += 1
-                        img_id = (idx + 1) + (batch * batch_size)
-                        sat_img = wandb_resize(undo_normalization(X[idx]))
-                        pred_img = wandb_resize(preds[idx].unsqueeze(0)).squeeze().cpu().numpy()
-                        label_img = wandb_resize(y[idx].unsqueeze(0)).squeeze().cpu().numpy()
-                        overlay_image = wandb.Image(
-                            sat_img,
-                            masks={
-                                "predictions": {
-                                    "mask_data": pred_img,
-                                    "class_labels": label_to_name,
-                                },
-                                "ground_truth": {
-                                    "mask_data": label_img,
-                                    "class_labels": label_to_name,
-                                },
-                            },
-                        )
-                        wandb.log({f"Image No. {img_id}": overlay_image, "epoch": epoch})
-                pb.update(X.shape[0])  # update validation progress bar
-        val_loss /= len(valid_dl)
+        # log image predictions
+        if wandb_log and epochs % log_epochs == 0:
+            for idx in range(len(X)):
+                # log only a few images
+                num_logged_imgs += 1
+                if num_logged_imgs >= max_log_imgs:
+                    break
+
+                # TODO: refactor this to a function
+                img_id = (idx + 1) + (batch * batch_size)
+                sat_img = wandb_resize(undo_normalization(X[idx]))
+                pred_img = wandb_resize(preds[idx].unsqueeze(0)).squeeze().cpu().numpy()
+                label_img = wandb_resize(y[idx].unsqueeze(0)).squeeze().cpu().numpy()
+                overlay_image = wandb.Image(
+                    sat_img,
+                    masks={
+                        "predictions": {
+                            "mask_data": pred_img,
+                            "class_labels": label_to_name,
+                        },
+                        "ground_truth": {
+                            "mask_data": label_img,
+                            "class_labels": label_to_name,
+                        },
+                    },
+                )
+                wandb.log({f"Image No. {img_id}": overlay_image, "epoch": epoch})
+
+        pbar.update(X.shape[0])  # update validation progress bar
+
+    val_loss /= len(valid_dl)
+    pbar.close()
 
     if wandb_log:
         metrics_dict = calculate_metrics("val", conf_matrix, class_names)
