@@ -172,3 +172,5 @@ test.ipynb
 key.py
 # obsidian
 notes/.obsidian
+# vscode
+.vscode/
