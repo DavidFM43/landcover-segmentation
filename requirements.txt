@@ -1,6 +1,6 @@
-ipykernel==6.22.0
-kaggle==1.5.13
-matplotlib==3.7.1
-pandas==2.0.0
+ipykernel
+kaggle
+matplotlib
+pandas
+wandb
 segmentation-models-pytorch==0.3.2
-wandb==0.15.0
