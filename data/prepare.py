@@ -1,73 +1,39 @@
 import os
 import shutil
-import kaggle
-from tqdm import tqdm
+import sys
 from pathlib import Path
 
+import kaggle
 import torch
+from dataset import int2rgb
 from torchvision.io import read_image
 from torchvision.transforms.functional import to_pil_image
+from tqdm import tqdm
+from utils import rgb2label
 
-
-def rgb_to_label(mask, class_colors):
-    """
-    Transforms a mask image from RGB format to label encoding.
-        Parameters:
-            mask: Torch tensor of shape (3, H, W)
-            class_colors: list of tuples of the RGB values for each class
-        Returns:
-            Torch tensor of shape (H, W) of label enconded classes
-    """
-    h, w = mask.shape[1:]  # shape expected to be (C, H, W)
-    semantic_map = torch.zeros((h, w), dtype=torch.uint8)
-    for idx, color in enumerate(class_colors):
-        color = torch.tensor(color).view(3, 1, 1)  # rgb value
-        class_map = torch.all(torch.eq(mask, color), 0)
-        semantic_map[class_map] = idx
-    return semantic_map
-
+sys.path.insert(0, "..")
 
 ds_name = "balraj98/deepglobe-land-cover-classification-dataset"
-images_dir = Path("images")
-processed_masks_dir = Path("masks")
-raw_masks_dir = Path("raw_masks")
-class_colors = [
-    (0, 255, 255),
-    (255, 255, 0),
-    (255, 0, 255),
-    (0, 255, 0),
-    (0, 0, 255),
-    (255, 255, 255),
-    (0, 0, 0),
-]
-
 # download dataset from kaggle
-data_path = os.path.dirname(os.path.abspath(__file__))
+raw_data_path = Path("raw_data")
+os.mkdir(raw_data_path)
 api = kaggle.api
 api.authenticate()
-api.dataset_download_cli(ds_name, path=data_path, unzip=True)
+api.dataset_download_cli(ds_name, path=raw_data_path, unzip=True)
 
-# clean folders
-shutil.rmtree("valid")
-shutil.rmtree("test")
-os.remove("metadata.csv")
-os.rename("train", "images")
-os.mkdir(processed_masks_dir)
-os.mkdir(raw_masks_dir)
+images_dir = Path("images")
+masks_dir = Path("masks")
+os.mkdir(images_dir)
+os.mkdir(masks_dir)
 
+ids = [f.split("_")[0] for f in os.listdir(raw_data_path / "train") if f.endswith("sat.jpg")]
 
-mask_files = [f for f in os.listdir(images_dir) if f.endswith(".png")]
-# transform all the masks and save them in out_dir
-for mask_file in tqdm(
-    mask_files,
-    desc="Processing masks",
-    unit="img",
-):
-    img_mask = read_image(str(images_dir / mask_file))
-    # process mask
-    label_enc_mask = rgb_to_label(img_mask, class_colors)
-    # move raw mask
-    os.rename(images_dir / mask_file, raw_masks_dir / mask_file)
-    # save processed mask
-    # TODO: Maybe save the images in a better format
-    to_pil_image(label_enc_mask).save(processed_masks_dir / mask_file)
+for id in tqdm(ids, desc="Preparing dataset"):
+    sat_img = f"{id}_sat.jpg"
+    mask_file = f"{id}_mask.png"
+    # copy sat image to images dir
+    shutil.copy(raw_data_path / "train" / sat_img, images_dir / sat_img)
+    # convert mask to label encoded mask
+    mask = read_image(str(raw_data_path / "train" / mask_file))
+    le_mask = rgb2label(mask, int2rgb).type(torch.uint8)
+    to_pil_image(le_mask).save(masks_dir / mask_file)  # TODO: Maybe save the images in a better format
