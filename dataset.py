@@ -1,28 +1,31 @@
 import os
 from pathlib import Path
 
-import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
 
 data_dir = Path("data")
 images_dir = data_dir / "images"
 masks_dir = data_dir / "masks"
-classes = pd.read_csv(data_dir / "class_dict.csv")
 
-# TODO: refactor this guys
-class_rgb_colors = [tuple(row[1:].tolist()) for _, row in classes.iterrows()]
-# class_names = classes["name"].tolist()
-class_names = [
-    "urban_land",
-    "agriculture_land",
-    "rangeland",
-    "forest_land",
-    "water",
-    "barren_land",
-    "unknown",
-]
-label_to_name = {idx: name for idx, name in enumerate(class_names)}
+int2str = {
+    0: "urban_land",
+    1: "agriculture_land",
+    2: "rangeland",
+    3: "forest_land",
+    4: "water",
+    5: "barren_land",
+    6: "unknown",
+}
+int2rgb = {
+    0: (0, 255, 255),
+    1: (255, 255, 0),
+    2: (255, 0, 255),
+    3: (0, 255, 0),
+    4: (0, 0, 255),
+    5: (255, 255, 255),
+    6: (0, 0, 0),
+}
 
 
 class LandcoverDataset(Dataset):

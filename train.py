@@ -1,26 +1,23 @@
-import argparse
 import os
+import pprint
 
 import segmentation_models_pytorch as smp
 import torch
 import wandb
-import yaml
-
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
-import pprint
 
-from dataset import LandcoverDataset, class_names, label_to_name
+from dataset import LandcoverDataset, int2str
 from get_key import wandb_key
-from utils import calculate_conf_matrix, calculate_metrics, UnNormalize
+from utils import UnNormalize, compute_confusion_m, compute_metrics
 
 config = {
     "downsize_res": 512,
     "batch_size": 6,
     "epochs": 50,
-    "lr": 5e-5,
+    "lr": 3e-4,
     "model_architecture": "Unet",
     "model_config": {
         "encoder_name": "resnet34",
@@ -32,7 +29,7 @@ config = {
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
- 
+
 # reproducibility
 torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
@@ -42,12 +39,13 @@ wandb_log           = True
 wandb_image_size    = 800
 wandb_resize        = transforms.Resize(wandb_image_size, antialias=True)
 checkpoint_log_step = 10
-log_epochs          = 10
+log_image_step      = 10
 max_log_imgs        = 7
 # data
 downsize_res = config["downsize_res"]
 batch_size   = config["batch_size"]
 epochs       = config["epochs"]
+num_classes  = 7
 # model
 model_architecture = getattr(smp, config["model_architecture"])
 model = model_architecture(**config["model_config"])
@@ -78,7 +76,9 @@ target_transform = transforms.Compose(
 undo_normalization = UnNormalize(mean, std)
 # datasets
 ds = LandcoverDataset(transform=transform, target_transform=target_transform)
-train_ds, valid_ds, test_ds = torch.utils.data.random_split(ds, [454, 207, 142], generator=torch.Generator().manual_seed(42))
+train_ds, valid_ds, test_ds = torch.utils.data.random_split(
+    ds, [454, 207, 142], generator=torch.Generator().manual_seed(42)
+)
 loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
 # dataloaders
 train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
@@ -86,13 +86,9 @@ valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
 test_dl = DataLoader(test_ds, shuffle=False, **loader_args)
 # crossentropy loss fn weights
 weight = torch.tensor([0.8987, 0.4091, 0.9165, 0.8886, 0.9643, 0.9231, 0.0], device=device)
-# loss_fn = nn.CrossEntropyLoss(weight=weights)
+# TODO: Implement focal loss from scratch
 loss_fn = torch.hub.load(
-    "adeelh/pytorch-multi-class-focal-loss",
-    model="FocalLoss",
-    alpha=weight,
-    gamma=2,
-    reduction="mean"
+    "adeelh/pytorch-multi-class-focal-loss", model="FocalLoss", alpha=weight, gamma=2, reduction="mean"
 )
 
 
@@ -102,7 +98,7 @@ if wandb_log:
     wandb.init(
         tags=["Unet"],
         entity="landcover-classification",
-        notes="50 epochs", 
+        notes="Check everything works",
         project="ml-experiments",
         config=dict(
             ce_weights=weight.tolist(),
@@ -124,8 +120,8 @@ if wandb_log:
     # model.load_state_dict(torch.load("checkpoints/CP_epoch30.pth"))
 
 # confusion matrix: columns are the predictions and rows are the real labels
-conf_matrix = torch.zeros((7, 7), device=device)
-for epoch in range(0, epochs + 1):
+conf_matrix = torch.zeros((num_classes, num_classes), device=device)
+for epoch in range(1, epochs + 1):
     conf_matrix.zero_()
     model.train()
     pbar = tqdm(total=len(train_ds), desc=f"Train epoch {epoch}/{epochs}", unit="img")
@@ -141,11 +137,10 @@ for epoch in range(0, epochs + 1):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-        pred = torch.argmax(logits, 1).detach()
-        # resize to evaluate with the original image
-        pred = transforms.functional.resize(pred, y.shape[-2:], antialias=True)
-        conf_matrix += calculate_conf_matrix(pred, y)
+        preds = torch.argmax(logits, 1).detach()
+        # resize to original resolution
+        preds = transforms.functional.resize(preds, y.shape[-2:], antialias=True)
+        conf_matrix += compute_confusion_m(preds, y)
         # log the train loss
         if wandb_log:
             wandb.log({"train/loss": loss.item()})
@@ -155,7 +150,7 @@ for epoch in range(0, epochs + 1):
     pbar.close()
 
     if wandb_log:
-        metrics_dict = calculate_metrics("train", conf_matrix, class_names)
+        metrics_dict = compute_metrics("train", conf_matrix, int2str)
         wandb.log({"epoch": epoch, **metrics_dict})
 
     # save checkpoints
@@ -181,14 +176,14 @@ for epoch in range(0, epochs + 1):
             logits = model(X_down)
             loss = loss_fn(logits, y_down)
         val_loss += loss.item()
-        preds = torch.argmax(logits, 1).detach()
-        # resize to evaluate with the original image
+        preds = torch.argmax(logits, 1)
+        # resize to original resolution
         preds = transforms.functional.resize(preds, y.shape[-2:], antialias=True)
         # log prediction matrix
-        conf_matrix += calculate_conf_matrix(preds, y)
+        conf_matrix += compute_confusion_m(preds, y)
 
         # log image predictions
-        if wandb_log and epochs % log_epochs == 0:
+        if wandb_log and epochs % log_image_step == 0:
             for idx in range(len(X)):
                 # log only a few images
                 num_logged_imgs += 1
@@ -205,11 +200,11 @@ for epoch in range(0, epochs + 1):
                     masks={
                         "predictions": {
                             "mask_data": pred_img,
-                            "class_labels": label_to_name,
+                            "class_labels": int2str,
                         },
                         "ground_truth": {
                             "mask_data": label_img,
-                            "class_labels": label_to_name,
+                            "class_labels": int2str,
                         },
                     },
                 )
@@ -221,7 +216,7 @@ for epoch in range(0, epochs + 1):
     pbar.close()
 
     if wandb_log:
-        metrics_dict = calculate_metrics("val", conf_matrix, class_names)
+        metrics_dict = compute_metrics("val", conf_matrix, int2str)
         wandb.log(
             {
                 "epoch": epoch,
