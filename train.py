@@ -16,27 +16,11 @@ from dataset import LandcoverDataset, class_names, label_to_name
 from get_key import wandb_key
 from utils import calculate_conf_matrix, calculate_metrics, UnNormalize
 
-## load configuration
-# parser = argparse.ArgumentParser()
-# parser.add_argument(
-#     "--config", help="Path to configuration file", default="config.yaml"
-# )
-# parser.add_argument(
-#     "--log",
-#     help="Log training to Weights and Biases",
-#     action=argparse.BooleanOptionalAction,
-#     default=False,
-# )
-# args = parser.parse_args()
-# with open(args.config, "r") as file:
-#     config = yaml.safe_load(file)
-
-# Temporal para debugear mas facil en Kaggle
 config = {
     "downsize_res": 512,
     "batch_size": 6,
     "epochs": 50,
-    "lr": 3e-4,
+    "lr": 5e-5,
     "model_architecture": "Unet",
     "model_config": {
         "encoder_name": "resnet34",
