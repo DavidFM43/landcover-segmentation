@@ -146,9 +146,10 @@ for epoch in range(1, epochs + 1):
         # log the train loss
         if wandb_log:
             wandb.log({"train/loss": loss.item()})
-        # update progress bar and add batch loss as postfix
         pbar.update(X.shape[0])
-        pbar.set_postfix(**{"loss (batch)": loss.item()})
+        pbar.set_postfix(
+            **{"batch loss": loss.item(), "Total memory allocated:": int(torch.cuda.memory_allocated() / 1024**2)}
+        )
     pbar.close()
 
     if wandb_log:
@@ -183,7 +184,7 @@ for epoch in range(1, epochs + 1):
         val_iou.process(preds, y)
 
         # log image predictions
-        if wandb_log and epochs % log_image_step == 0:
+        if wandb_log and epoch % log_image_step == 0:
             for idx in range(len(X)):
                 # log only a few images
                 num_logged_imgs += 1
@@ -211,6 +212,7 @@ for epoch in range(1, epochs + 1):
                 wandb.log({f"Image No. {img_id}": overlay_image, "epoch": epoch})
 
         pbar.update(X.shape[0])  # update validation progress bar
+        pbar.set_postfix(**{"Total memory allocated": int(torch.cuda.memory_allocated() / 1024**2)})
 
     val_loss /= len(valid_dl)
     pbar.close()
