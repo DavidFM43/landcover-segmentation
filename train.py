@@ -11,12 +11,13 @@ from tqdm import tqdm
 
 from dataset import LandcoverDataset, int2str
 from get_key import wandb_key
-from utils import UnNormalize, compute_confusion_m, compute_metrics
+from utils import UnNormalize
+from metrics import IouMetric
 
 config = {
     "downsize_res": 512,
     "batch_size": 6,
-    "epochs": 50,
+    "epochs": 2,
     "lr": 3e-4,
     "model_architecture": "Unet",
     "model_config": {
@@ -119,10 +120,11 @@ if wandb_log:
     # run.file("checkpoints/CP_epoch30.pth").download(replace=True)
     # model.load_state_dict(torch.load("checkpoints/CP_epoch30.pth"))
 
-# confusion matrix: columns are the predictions and rows are the real labels
-conf_matrix = torch.zeros((num_classes, num_classes), device=device)
+# metrics
+train_iou = IouMetric(num_classes=num_classes, int2str=int2str, ignore_index=6, prefix="train")
+val_iou = IouMetric(num_classes=num_classes, int2str=int2str, ignore_index=6, prefix="val")
+
 for epoch in range(1, epochs + 1):
-    conf_matrix.zero_()
     model.train()
     pbar = tqdm(total=len(train_ds), desc=f"Train epoch {epoch}/{epochs}", unit="img")
     # training loop
@@ -140,7 +142,7 @@ for epoch in range(1, epochs + 1):
         preds = torch.argmax(logits, 1).detach()
         # resize to original resolution
         preds = transforms.functional.resize(preds, y.shape[-2:], antialias=True)
-        conf_matrix += compute_confusion_m(preds, y)
+        train_iou.process(preds, y)
         # log the train loss
         if wandb_log:
             wandb.log({"train/loss": loss.item()})
@@ -150,8 +152,9 @@ for epoch in range(1, epochs + 1):
     pbar.close()
 
     if wandb_log:
-        metrics_dict = compute_metrics("train", conf_matrix, int2str)
+        metrics_dict = train_iou.compute()
         wandb.log({"epoch": epoch, **metrics_dict})
+        train_iou.reset()
 
     # save checkpoints
     if epoch % checkpoint_log_step == 0:
@@ -159,9 +162,6 @@ for epoch in range(1, epochs + 1):
         # check this tutorial: https://pytorch.org/tutorials/recipes/recipes/saving_and_loading_a_general_checkpoint.html
         torch.save(model.state_dict(), "checkpoints/" + f"CP_epoch{epoch}.pth")
 
-    ## validation
-    # reset the confusion matrix and validation loss
-    conf_matrix.zero_()
     val_loss: float = 0.0
     model.eval()
     num_logged_imgs = 0
@@ -180,7 +180,7 @@ for epoch in range(1, epochs + 1):
         # resize to original resolution
         preds = transforms.functional.resize(preds, y.shape[-2:], antialias=True)
         # log prediction matrix
-        conf_matrix += compute_confusion_m(preds, y)
+        val_iou.process(preds, y)
 
         # log image predictions
         if wandb_log and epochs % log_image_step == 0:
@@ -216,7 +216,7 @@ for epoch in range(1, epochs + 1):
     pbar.close()
 
     if wandb_log:
-        metrics_dict = compute_metrics("val", conf_matrix, int2str)
+        metrics_dict = val_iou.compute()
         wandb.log(
             {
                 "epoch": epoch,
@@ -225,6 +225,7 @@ for epoch in range(1, epochs + 1):
             }
         )
         wandb.save("checkpoints/*")
+        val_iou.reset()
 
 if wandb_log:
     wandb.finish()
