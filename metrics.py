@@ -13,6 +13,7 @@ class IouMetric:
         self.area_intersect = torch.zeros(num_classes)
         self.area_label = torch.zeros(num_classes)
         self.area_pred = torch.zeros(num_classes)
+        self.num_classes = num_classes
         self.int2str = int2str
         self.ignore_index = ignore_index
         self.prefix = prefix
