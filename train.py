@@ -17,7 +17,7 @@ from metrics import IouMetric
 config = {
     "downsize_res": 512,
     "batch_size": 6,
-    "epochs": 2,
+    "epochs": 20,
     "lr": 3e-4,
     "model_architecture": "Unet",
     "model_config": {
