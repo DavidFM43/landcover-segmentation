@@ -32,9 +32,9 @@ class IouMetric:
         area_pred = torch.histc(preds.float(), bins=self.num_classes, min=0, max=self.num_classes - 1)
 
         # update results
-        self.area_intersect += area_intersect
-        self.area_label += area_label
-        self.area_pred += area_pred
+        self.area_intersect += area_intersect.cpu()
+        self.area_label += area_label.cpu()
+        self.area_pred += area_pred.cpu()
 
     def compute(self) -> dict:
         iou = self.area_intersect / (self.area_label + self.area_pred - self.area_intersect)
