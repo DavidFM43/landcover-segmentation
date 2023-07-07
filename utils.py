@@ -102,43 +102,6 @@ def calculate_channel_stats(dataset: torch.utils.data.Dataset):
     return mean, std
 
 
-def compute_confusion_m(pred: torch.Tensor, labels: torch.Tensor, num_classes: int = 7) -> torch.Tensor:
-    """
-    Computes the confusion matrix of the true labels and predictions.
-    The rows are true labels and columns are predictions.
-
-    Transforms both the predictions and targets to one hot encoding,
-    performs an element-wise product between a class channel from the true labels
-    and the predictions, then sum over all the dims except for the
-    class dim in order to get the predictions given the fixed true class.
-    """
-    ohe_pred = label2onehot(pred, num_classes=num_classes)
-    ohe_labels = label2onehot(labels, num_classes=num_classes)
-    return torch.stack([(ohe_pred * ohe_labels[:, [c]]).sum(dim=[0, 2, 3]) for c in range(num_classes)])
-
-
-def compute_metrics(split: str, conf_matrix: torch.Tensor, int2str: dict) -> dict:
-    """
-    Computes the IoU(and accuracy) per class and average given the confusion matrix.
-    """
-    tp = conf_matrix.diag()  # true positives
-    fp = conf_matrix.sum(0) - tp  # false positives
-    n_class = conf_matrix.sum(1)  # total class gts
-    accuracy = tp / (n_class + 1e-5)
-    iou = tp / (n_class + fp + 1e-5)
-    # ignore unknown class
-    accuracy = accuracy[:-1]
-    iou = iou[:-1]
-    # log metrics average and per class
-    return {
-        f"{split}/mean_accuracy": accuracy.mean().item(),
-        **{f"{split}/accuracy_{int2str[i]}": accuracy[i] for i in range(len(int2str) - 1)},
-        # ignore unknown class
-        f"{split}/mean_iou": iou.mean().item(),
-        **{f"{split}/iou_{int2str[i]}": iou[i] for i in range(len(int2str) - 1)},
-    }
-
-
 def flatten(tensor):
     """Flattens a given tensor such that the channel axis is first.
     The shapes are transformed as follows:
@@ -185,3 +148,13 @@ def dice_loss(input, target, epsilon=1e-6, weight=None):
     # here we can use standard dice (input + target).sum(-1) or extension (see V-Net) (input^2 + target^2).sum(-1)
     denominator = (input * input).sum(-1) + (target * target).sum(-1)
     return 1 - sum(2 * (intersect / denominator.clamp(min=epsilon)))
+
+
+def print_mem():
+    """Prints current memory usage info"""
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("Current device:         ", device)
+    print("Total memory allocated: ", round(torch.cuda.memory_allocated() / 1024**2, 2), "MB")
+    print("Max memory allocated:   ", round(torch.cuda.max_memory_allocated() / 1024**2, 2), "MB")
+    print("Memory reserved:        ", round(torch.cuda.memory_reserved() / 1024**2, 2), "MB")
+    print("Max memory reserved:    ", round(torch.cuda.max_memory_reserved() / 1024**2, 2), "MB")
