@@ -43,11 +43,11 @@ class IouMetric:
         mean_iou = torch.nanmean(iou)
 
         metrics = {
-            f"{self.prefix}/iou_{self.int2str[idx]}": round(iou[idx].item(), 4)
+            f"{self.prefix}/iou_{self.int2str[idx]}": iou[idx].item()
             for idx in range(len(iou))
             if idx != self.ignore_index
         }
-        metrics[f"{self.prefix}/mean_iou"] = round(mean_iou.item(), 4)
+        metrics[f"{self.prefix}/mean_iou"] = mean_iou.item()
 
         return metrics
 
