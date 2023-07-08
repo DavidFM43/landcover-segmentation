@@ -15,8 +15,8 @@ from utils import UnNormalize
 from metrics import IouMetric
 
 config = {
-    "downsize_res": 512,
-    "batch_size": 12,
+    "downsize_res": 1024,
+    "batch_size": 8,
     "epochs": 15,
     "lr": 1e-4,
     "model_architecture": "Unet",
@@ -40,7 +40,7 @@ wandb_log           = True
 wandb_image_size    = 800
 wandb_resize        = transforms.Resize(wandb_image_size, antialias=True)
 checkpoint_log_step = 10
-log_image_step      = 10
+log_image_step      = 7
 max_log_imgs        = 7
 # data
 downsize_res = config["downsize_res"]
@@ -103,7 +103,7 @@ if wandb_log:
         notes="Decrease learning rate",
         project="ml-experiments",
         config=dict(
-            ce_weights=weight.tolist(),
+            ce_weights=[round(w, 2) for w in weight],
             optimizer=type(optimizer).__name__,
             loss_fn=type(loss_fn).__name__,
             num_workers=os.cpu_count(),
