@@ -13,19 +13,20 @@ from dataset import LandcoverDataset, int2str
 from get_key import wandb_key
 from utils import UnNormalize
 from metrics import IouMetric
+from model import MoonshineUnet
 
 config = {
-    "downsize_res": 1024,
-    "batch_size": 4,
-    "epochs": 15,
-    "lr": 1e-4,
+    "downsize_res": 512,
+    "batch_size": 12,
+    "epochs": 20,
+    "lr": 5e-5,
     "model_architecture": "Unet",
-    "model_config": {
-        "encoder_name": "resnet34",
-        "encoder_weights": "imagenet",
-        "in_channels": 3,
-        "classes": 7,
-    },
+    # "model_config": {
+    #     "encoder_name": "resnet34",
+    #     "encoder_weights": "imagenet",
+    #     "in_channels": 3,
+    #     "classes": 7,
+    # },
 }
 
 
@@ -48,8 +49,9 @@ batch_size   = config["batch_size"]
 epochs       = config["epochs"]
 num_classes  = 7
 # model
-model_architecture = getattr(smp, config["model_architecture"])
-model = model_architecture(**config["model_config"])
+# model_architecture = getattr(smp, config["model_architecture"])
+# model = model_architecture(**config["model_config"])
+model = MoonshineUnet()
 model.to(device)
 # optimizer
 lr = float(config["lr"])
@@ -59,8 +61,8 @@ save_cp = True
 if save_cp and not os.path.exists("checkpoints/"):
     os.mkdir("checkpoints/")
 # dataset statistics
-mean = [0.4085, 0.3798, 0.2822]
-std = [0.1410, 0.1051, 0.0927]
+mean = [0.485, 0.456, 0.406]
+std=[0.229, 0.224, 0.225]
 # transforms
 downsize_t = transforms.Resize(downsize_res, antialias=True)
 transform = transforms.Compose(
@@ -100,7 +102,7 @@ if wandb_log:
     wandb.init(
         tags=["Unet"],
         entity="landcover-classification",
-        notes="Decrease learning rate",
+        notes="Moonshine",
         project="ml-experiments",
         config=dict(
             ce_weights=[round(w.item(), 2) for w in weight],
