@@ -80,7 +80,7 @@ ds = LandcoverDataset(transform=transform, target_transform=target_transform)
 train_ds, valid_ds, test_ds = torch.utils.data.random_split(
     ds, [454, 207, 142], generator=torch.Generator().manual_seed(42)
 )
-loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
+loader_args = dict(batch_size=batch_size, num_workers=4)
 # dataloaders
 train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
@@ -150,10 +150,6 @@ for epoch in range(1, epochs + 1):
             wandb.log({"train/loss": loss.item()})
         train_loss += loss.item()
         pbar.update(X.shape[0])
-        pbar.set_postfix(
-            **{"batch loss": loss.item(), "mem_alloc": f"{int(torch.cuda.memory_allocated() / 1024**2)} Mb"}
-
-        )
     train_loss /= len(train_dl)
     pbar.close()
 
@@ -217,7 +213,6 @@ for epoch in range(1, epochs + 1):
                 wandb.log({f"Image No. {img_id}": overlay_image, "epoch": epoch})
 
         pbar.update(X.shape[0])  # update validation progress bar
-        pbar.set_postfix(**{"mem_alloc": f"{int(torch.cuda.memory_allocated() / 1024**2)} Mb"})
 
     val_loss /= len(valid_dl)
     pbar.close()
