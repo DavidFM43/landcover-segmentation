@@ -16,9 +16,9 @@ from metrics import IouMetric
 
 config = {
     "downsize_res": 512,
-    "batch_size": 6,
-    "epochs": 20,
-    "lr": 5e-5,
+    "batch_size": 12,
+    "epochs": 15,
+    "lr": 1e-4,
     "model_architecture": "Unet",
     "model_config": {
         "encoder_name": "resnet34",
@@ -151,7 +151,8 @@ for epoch in range(1, epochs + 1):
         train_loss += loss.item()
         pbar.update(X.shape[0])
         pbar.set_postfix(
-            **{"batch loss": loss.item(), "Total memory allocated:": int(torch.cuda.memory_allocated() / 1024**2)}
+            **{"batch loss": loss.item(), "mem_alloc": f"{int(torch.cuda.memory_allocated() / 1024**2)} Mb"}
+
         )
     train_loss /= len(train_dl)
     pbar.close()
@@ -216,7 +217,7 @@ for epoch in range(1, epochs + 1):
                 wandb.log({f"Image No. {img_id}": overlay_image, "epoch": epoch})
 
         pbar.update(X.shape[0])  # update validation progress bar
-        pbar.set_postfix(**{"Total memory allocated": int(torch.cuda.memory_allocated() / 1024**2)})
+        pbar.set_postfix(**{"mem_alloc": f"{int(torch.cuda.memory_allocated() / 1024**2)} Mb"})
 
     val_loss /= len(valid_dl)
     pbar.close()
