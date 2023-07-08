@@ -103,7 +103,7 @@ if wandb_log:
         notes="Decrease learning rate",
         project="ml-experiments",
         config=dict(
-            ce_weights=[round(w, 2) for w in weight],
+            ce_weights=[round(w.item(), 2) for w in weight],
             optimizer=type(optimizer).__name__,
             loss_fn=type(loss_fn).__name__,
             num_workers=os.cpu_count(),
