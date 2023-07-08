@@ -17,8 +17,8 @@ from metrics import IouMetric
 config = {
     "downsize_res": 512,
     "batch_size": 6,
-    "epochs": 50,
-    "lr": 3e-4,
+    "epochs": 20,
+    "lr": 5e-5,
     "model_architecture": "Unet",
     "model_config": {
         "encoder_name": "resnet34",
@@ -86,11 +86,12 @@ train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
 test_dl = DataLoader(test_ds, shuffle=False, **loader_args)
 # crossentropy loss fn weights
-weight = torch.tensor([0.8987, 0.4091, 0.9165, 0.8886, 0.9643, 0.9231, 0.0], device=device)
-# TODO: Implement focal loss from scratch
-loss_fn = torch.hub.load(
-    "adeelh/pytorch-multi-class-focal-loss", model="FocalLoss", alpha=weight, gamma=2, reduction="mean"
-)
+weight = torch.tensor([0.8987, 0.4091, 1.5, 0.8886, 0.9643, 1.2, 0.0], device=device)
+loss_fn = nn.CrossEntropyLoss(weight=weight)
+# # TODO: Implement focal loss from scratch
+# loss_fn = torch.hub.load(
+#     "adeelh/pytorch-multi-class-focal-loss", model="FocalLoss", alpha=weight, gamma=2, reduction="mean"
+# )
 
 
 # log training and data config
@@ -99,7 +100,7 @@ if wandb_log:
     wandb.init(
         tags=["Unet"],
         entity="landcover-classification",
-        notes="Check everything works",
+        notes="Decrease learning rate",
         project="ml-experiments",
         config=dict(
             ce_weights=weight.tolist(),
@@ -125,6 +126,7 @@ train_iou = IouMetric(num_classes=num_classes, int2str=int2str, ignore_index=6, 
 val_iou = IouMetric(num_classes=num_classes, int2str=int2str, ignore_index=6, prefix="val")
 
 for epoch in range(1, epochs + 1):
+    train_loss: float = 0.0
     model.train()
     pbar = tqdm(total=len(train_ds), desc=f"Train epoch {epoch}/{epochs}", unit="img")
     # training loop
@@ -146,15 +148,17 @@ for epoch in range(1, epochs + 1):
         # log the train loss
         if wandb_log:
             wandb.log({"train/loss": loss.item()})
+        train_loss += loss.item()
         pbar.update(X.shape[0])
         pbar.set_postfix(
             **{"batch loss": loss.item(), "Total memory allocated:": int(torch.cuda.memory_allocated() / 1024**2)}
         )
+    train_loss /= len(train_dl)
     pbar.close()
 
     if wandb_log:
         metrics_dict = train_iou.compute()
-        wandb.log({"epoch": epoch, **metrics_dict})
+        wandb.log({"epoch": epoch, "train/mean_loss": train_loss, **metrics_dict})
         train_iou.reset()
 
     # save checkpoints
