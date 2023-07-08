@@ -80,7 +80,7 @@ ds = LandcoverDataset(transform=transform, target_transform=target_transform)
 train_ds, valid_ds, test_ds = torch.utils.data.random_split(
     ds, [454, 207, 142], generator=torch.Generator().manual_seed(42)
 )
-loader_args = dict(batch_size=batch_size, num_workers=4)
+loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count())
 # dataloaders
 train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
