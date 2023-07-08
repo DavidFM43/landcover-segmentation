@@ -15,9 +15,9 @@ from utils import UnNormalize
 from metrics import IouMetric
 
 config = {
-    "downsize_res": 1024,
-    "batch_size": 4,
-    "epochs": 15,
+    "downsize_res": 512,
+    "batch_size": 12,
+    "epochs": 30,
     "lr": 1e-4,
     "model_architecture": "Unet",
     "model_config": {
@@ -100,7 +100,7 @@ if wandb_log:
     wandb.init(
         tags=["Unet"],
         entity="landcover-classification",
-        notes="Decrease learning rate",
+        notes="unique-wood-117 with more epochs",
         project="ml-experiments",
         config=dict(
             ce_weights=[round(w.item(), 2) for w in weight],
