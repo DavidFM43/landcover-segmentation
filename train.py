@@ -15,10 +15,10 @@ from utils import UnNormalize
 from metrics import IouMetric
 
 config = {
-    "downsize_res": 512,
-    "batch_size": 12,
+    "downsize_res": 1024,
+    "batch_size": 4,
     "epochs": 30,
-    "lr": 1e-4,
+    "lr": 5e-5,
     "model_architecture": "Unet",
     "model_config": {
         "encoder_name": "resnet34",
