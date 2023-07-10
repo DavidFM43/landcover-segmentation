@@ -15,9 +15,9 @@ from utils import UnNormalize
 from metrics import IouMetric
 
 config = {
-    "downsize_res": 1024,
-    "batch_size": 4,
-    "epochs": 30,
+    "downsize_res": 2048,
+    "batch_size": 2,
+    "epochs": 20,
     "lr": 5e-5,
     "model_architecture": "Unet",
     "model_config": {
