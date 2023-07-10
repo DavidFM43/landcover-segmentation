@@ -19,11 +19,9 @@ class IouMetric:
         self.prefix = prefix
 
     def process(self, preds, labels):
-        ## NOTE: Including this would be conceptually correct but ive decided to ignore it for now
-        ##       as other implementations dont include it
-        # mask = labels != self.ignore_index
-        # preds = preds[mask]
-        # labels = labels[mask]
+        mask = labels != self.ignore_index
+        preds = preds[mask]
+        labels = labels[mask]
 
         # compute area of intersection, label and prediction
         intersect = preds[preds == labels]
