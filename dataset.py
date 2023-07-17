@@ -3,6 +3,9 @@ from pathlib import Path
 
 from PIL import Image
 from torch.utils.data import Dataset
+import numpy as np
+from torchvision import transforms
+import random
 
 data_dir = Path("data")
 images_dir = data_dir / "images"
@@ -57,3 +60,15 @@ class LandcoverDataset(Dataset):
         if self.target_transform is not None:
             mask = self.target_transform(mask).squeeze().long()
         return sat_img, mask
+
+    def _transform(self, image, label):
+        if np.random.random() > 0.5:
+            image = transforms.functional.hflip(image)
+            label = transforms.functional.hflip(label)
+
+        if np.random.random() > 0.5:
+            degree = random.choice([90, 180, 270])
+            image = transforms.functional.rotate(image, degree)
+            label = transforms.functional.rotate(label, degree)
+
+        return image, label
