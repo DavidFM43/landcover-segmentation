@@ -19,7 +19,7 @@ def get_upsampling_weight(in_channels, out_channels, kernel_size):
     return torch.from_numpy(weight).float()
 
 
-class FCN8(nn.module):
+class FCN8(nn.Module):
     def __init__(self, num_classes, mode=1, pretrained=True, freeze_bn=False, freeze_backbone=False):
         super(FCN8, self).__init__()
 

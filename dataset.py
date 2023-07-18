@@ -11,6 +11,10 @@ data_dir = Path("data")
 images_dir = data_dir / "images"
 masks_dir = data_dir / "masks"
 
+train_ids = open(data_dir / "splits" / "train.txt").read().splitlines()
+val_ids = open(data_dir / "splits" / "val.txt").read().splitlines()
+test_ids = open(data_dir / "splits" / "test.txt").read().splitlines()
+
 int2str = {
     0: "urban_land",
     1: "agriculture_land",
@@ -34,16 +38,19 @@ int2rgb = {
 class LandcoverDataset(Dataset):
     def __init__(
         self,
+        image_ids,
         images_dir=images_dir,
         masks_dir=masks_dir,
         transform=None,
         target_transform=None,
+        augmentations=False
     ):
-        self.image_ids = sorted([f.split("_")[0] for f in os.listdir(images_dir)])
+        self.image_ids = image_ids
         self.images_dir = images_dir
         self.masks_dir = masks_dir
         self.transform = transform
         self.target_transform = target_transform
+        self.augmentations = augmentations
 
     def __len__(self):
         return len(self.image_ids)
@@ -58,17 +65,14 @@ class LandcoverDataset(Dataset):
         if self.transform is not None:
             sat_img = self.transform(sat_img)
         if self.target_transform is not None:
-            mask = self.target_transform(mask).squeeze().long()
-        return sat_img, mask
+            mask = self.target_transform(mask).long()
+        if self.augmentations:
+            if np.random.random() > 0.5:
+                sat_img = transforms.functional.hflip(sat_img)
+                mask = transforms.functional.hflip(mask)
+            if np.random.random() > 0.5:
+                degree = random.choice([90, 180, 270])
+                sat_img = transforms.functional.rotate(sat_img, degree)
+                mask = transforms.functional.rotate(mask, degree)
+        return sat_img, mask.squeeze()
 
-    def _transform(self, image, label):
-        if np.random.random() > 0.5:
-            image = transforms.functional.hflip(image)
-            label = transforms.functional.hflip(label)
-
-        if np.random.random() > 0.5:
-            degree = random.choice([90, 180, 270])
-            image = transforms.functional.rotate(image, degree)
-            label = transforms.functional.rotate(label, degree)
-
-        return image, label

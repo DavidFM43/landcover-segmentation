@@ -9,13 +9,15 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
 
-from dataset import LandcoverDataset, int2str
+from dataset import LandcoverDataset, int2str, train_ids, val_ids, test_ids
 from get_key import wandb_key
 from utils import UnNormalize
 from metrics import IouMetric
+from fcn import FCN8
+from scheduler import LR_Scheduler
 
 config = {
-    "downsize_res": 508,
+    "downsize_res": 512,
     "batch_size": 6,
     "epochs": 50,
     "lr": 5e-5,
@@ -28,7 +30,6 @@ config = {
     },
 }
 
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # reproducibility
@@ -38,7 +39,8 @@ torch.backends.cudnn.deterministic = True
 # logging
 wandb_log           = True
 wandb_image_size    = 800
-wandb_resize        = transforms.Resize(wandb_image_size, antialias=True)
+wandb_resize_input  = transforms.Resize((wandb_image_size, wandb_image_size), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True)
+wandb_resize_label  = transforms.Resize((wandb_image_size, wandb_image_size), interpolation=transforms.InterpolationMode.NEAREST, antialias=True)
 checkpoint_log_step = 10
 log_image_step      = 7
 max_log_imgs        = 7
@@ -48,12 +50,11 @@ batch_size   = config["batch_size"]
 epochs       = config["epochs"]
 num_classes  = 7
 # model
-model_architecture = getattr(smp, config["model_architecture"])
-model = model_architecture(**config["model_config"])
+model = FCN8(num_classes, 0)
 model.to(device)
 # optimizer
 lr = float(config["lr"])
-optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+optimizer = torch.optim.Adam([{'params': model.parameters(), 'lr': lr}], weight_decay=5e-4)
 # checkpoints
 save_cp = True
 if save_cp and not os.path.exists("checkpoints/"):
@@ -62,45 +63,35 @@ if save_cp and not os.path.exists("checkpoints/"):
 mean = [0.4085, 0.3798, 0.2822]
 std = [0.1410, 0.1051, 0.0927]
 # transforms
-downsize_t = transforms.Resize(downsize_res, antialias=True)
-transform = transforms.Compose(
-    [
-        transforms.ToTensor(),
-        transforms.Normalize(mean, std),
-    ]
-)
-target_transform = transforms.Compose(
-    [
-        transforms.PILToTensor(),
-    ]
-)
+downsize_input = transforms.Resize((downsize_res, downsize_res), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True)
+downsize_label = transforms.Resize((downsize_res, downsize_res), interpolation=transforms.InterpolationMode.NEAREST, antialias=True)
+transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean, std)])
+target_transform = transforms.PILToTensor()
 undo_normalization = UnNormalize(mean, std)
 # datasets
-ds = LandcoverDataset(transform=transform, target_transform=target_transform)
-train_ds, valid_ds, test_ds = torch.utils.data.random_split(
-    ds, [454, 207, 142], generator=torch.Generator().manual_seed(42)
-)
-loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count())
+train_ds = LandcoverDataset(train_ids, transform=transform, target_transform=target_transform, augmentations=True)
+valid_ds = LandcoverDataset(val_ids, transform=transform, target_transform=target_transform)
 # dataloaders
+loader_args = dict(batch_size=batch_size, num_workers=2)
 train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
-test_dl = DataLoader(test_ds, shuffle=False, **loader_args)
+# scheduler
+scheduler = LR_Scheduler('poly', lr, epochs, len(train_dl))
 # crossentropy loss fn weights
 weight = torch.tensor([0.8987, 0.4091, 1.5, 0.8886, 0.9643, 1.2, 0.0], device=device)
-loss_fn = nn.CrossEntropyLoss(weight=weight)
-# # TODO: Implement focal loss from scratch
-# loss_fn = torch.hub.load(
-#     "adeelh/pytorch-multi-class-focal-loss", model="FocalLoss", alpha=weight, gamma=2, reduction="mean"
-# )
+# TODO: Implement focal loss from scratch
+loss_fn = torch.hub.load(
+    "adeelh/pytorch-multi-class-focal-loss", model="FocalLoss", gamma=3, reduction="mean"
+)
 
 
 # log training and data config
 if wandb_log:
     wandb.login(key=wandb_key)
     wandb.init(
-        tags=["Unet"],
+        tags=["FCtl"],
         entity="landcover-classification",
-        notes="unique-wood-117 with more epochs",
+        notes="",
         project="ml-experiments",
         config=dict(
             ce_weights=[round(w.item(), 2) for w in weight],
@@ -125,15 +116,17 @@ if wandb_log:
 train_iou = IouMetric(num_classes=num_classes, int2str=int2str, ignore_index=6, prefix="train")
 val_iou = IouMetric(num_classes=num_classes, int2str=int2str, ignore_index=6, prefix="val")
 
-for epoch in range(1, epochs + 1):
+best_pred = 0.0
+for epoch in range(0, epochs):
     train_loss: float = 0.0
     model.train()
     pbar = tqdm(total=len(train_ds), desc=f"Train epoch {epoch}/{epochs}", unit="img")
     # training loop
     for batch, (X, y) in enumerate(train_dl):
+        scheduler(optimizer, batch, epoch, best_pred)  # update lr
         X, y = X.to(device), y.to(device)
-        y_down = downsize_t(y)
-        X_down = downsize_t(X)
+        X_down = downsize_input(X)
+        y_down = downsize_label(y)
         # forward pass
         logits = model(X_down)
         loss = loss_fn(logits, y_down)
@@ -172,8 +165,8 @@ for epoch in range(1, epochs + 1):
     for batch, (X, y) in enumerate(valid_dl):
         with torch.no_grad():
             X, y = X.to(device), y.to(device)
-            X_down = downsize_t(X)
-            y_down = downsize_t(y)
+            X_down = downsize_input(X)
+            y_down = downsize_label(y)
             # forward pass
             logits = model(X_down)
             loss = loss_fn(logits, y_down)
@@ -194,9 +187,9 @@ for epoch in range(1, epochs + 1):
 
                 # TODO: refactor this to a function
                 img_id = (idx + 1) + (batch * batch_size)
-                sat_img = wandb_resize(undo_normalization(X[idx]))
-                pred_img = wandb_resize(preds[idx].unsqueeze(0)).squeeze().cpu().numpy()
-                label_img = wandb_resize(y[idx].unsqueeze(0)).squeeze().cpu().numpy()
+                sat_img = wandb_resize_input(undo_normalization(X[idx]))
+                pred_img = wandb_resize_input(preds[idx].unsqueeze(0)).squeeze().cpu().numpy()
+                label_img = wandb_resize_label(y[idx].unsqueeze(0)).squeeze().cpu().numpy()
                 overlay_image = wandb.Image(
                     sat_img,
                     masks={
