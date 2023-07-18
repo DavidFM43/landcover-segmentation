@@ -37,24 +37,28 @@ torch.manual_seed(1)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 # logging
-wandb_log           = True
-wandb_image_size    = 800
-wandb_resize_input  = transforms.Resize((wandb_image_size, wandb_image_size), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True)
-wandb_resize_label  = transforms.Resize((wandb_image_size, wandb_image_size), interpolation=transforms.InterpolationMode.NEAREST, antialias=True)
+wandb_log = True
+wandb_image_size = 800
+wandb_resize_input = transforms.Resize(
+    (wandb_image_size, wandb_image_size), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
+)
+wandb_resize_label = transforms.Resize(
+    (wandb_image_size, wandb_image_size), interpolation=transforms.InterpolationMode.NEAREST, antialias=True
+)
 checkpoint_log_step = 10
-log_image_step      = 7
-max_log_imgs        = 7
+log_image_step = 7
+max_log_imgs = 7
 # data
 downsize_res = config["downsize_res"]
-batch_size   = config["batch_size"]
-epochs       = config["epochs"]
-num_classes  = 7
+batch_size = config["batch_size"]
+epochs = config["epochs"]
+num_classes = 7
 # model
 model = FCN8(num_classes, 0)
 model.to(device)
 # optimizer
 lr = float(config["lr"])
-optimizer = torch.optim.Adam([{'params': model.parameters(), 'lr': lr}], weight_decay=5e-4)
+optimizer = torch.optim.Adam([{"params": model.parameters(), "lr": lr}], weight_decay=5e-4)
 # checkpoints
 save_cp = True
 if save_cp and not os.path.exists("checkpoints/"):
@@ -63,8 +67,12 @@ if save_cp and not os.path.exists("checkpoints/"):
 mean = [0.4085, 0.3798, 0.2822]
 std = [0.1410, 0.1051, 0.0927]
 # transforms
-downsize_input = transforms.Resize((downsize_res, downsize_res), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True)
-downsize_label = transforms.Resize((downsize_res, downsize_res), interpolation=transforms.InterpolationMode.NEAREST, antialias=True)
+downsize_input = transforms.Resize(
+    (downsize_res, downsize_res), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
+)
+downsize_label = transforms.Resize(
+    (downsize_res, downsize_res), interpolation=transforms.InterpolationMode.NEAREST, antialias=True
+)
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean, std)])
 target_transform = transforms.PILToTensor()
 undo_normalization = UnNormalize(mean, std)
@@ -76,13 +84,11 @@ loader_args = dict(batch_size=batch_size, num_workers=2)
 train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
 # scheduler
-scheduler = LR_Scheduler('poly', lr, epochs, len(train_dl))
+scheduler = LR_Scheduler("poly", lr, epochs, len(train_dl))
 # crossentropy loss fn weights
 weight = torch.tensor([0.8987, 0.4091, 1.5, 0.8886, 0.9643, 1.2, 0.0], device=device)
 # TODO: Implement focal loss from scratch
-loss_fn = torch.hub.load(
-    "adeelh/pytorch-multi-class-focal-loss", model="FocalLoss", gamma=3, reduction="mean"
-)
+loss_fn = torch.hub.load("adeelh/pytorch-multi-class-focal-loss", model="FocalLoss", gamma=3, reduction="mean")
 
 
 # log training and data config

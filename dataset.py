@@ -43,7 +43,7 @@ class LandcoverDataset(Dataset):
         masks_dir=masks_dir,
         transform=None,
         target_transform=None,
-        augmentations=False
+        augmentations=False,
     ):
         self.image_ids = image_ids
         self.images_dir = images_dir
@@ -75,4 +75,3 @@ class LandcoverDataset(Dataset):
                 sat_img = transforms.functional.rotate(sat_img, degree)
                 mask = transforms.functional.rotate(mask, degree)
         return sat_img, mask.squeeze()
-
