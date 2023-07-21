@@ -21,9 +21,9 @@ config = {
     "batch_size": 6,
     "epochs": 50,
     "lr": 5e-5,
-    "model_architecture": "Unet",
+    "model_architecture": "FCN8",
     "model_config": {
-        "encoder_name": "resnet34",
+        "encoder_name": "VGG16",
         "encoder_weights": "imagenet",
         "in_channels": 3,
         "classes": 7,
@@ -45,7 +45,7 @@ wandb_resize_input = transforms.Resize(
 wandb_resize_label = transforms.Resize(
     (wandb_image_size, wandb_image_size), interpolation=transforms.InterpolationMode.NEAREST, antialias=True
 )
-checkpoint_log_step = 10
+checkpoint_log_step = 50
 log_image_step = 7
 max_log_imgs = 7
 # data
@@ -80,7 +80,7 @@ undo_normalization = UnNormalize(mean, std)
 train_ds = LandcoverDataset(train_ids, transform=transform, target_transform=target_transform, augmentations=True)
 valid_ds = LandcoverDataset(val_ids, transform=transform, target_transform=target_transform)
 # dataloaders
-loader_args = dict(batch_size=batch_size, num_workers=2)
+loader_args = dict(batch_size=batch_size, pin_memory=True, num_workers=3)
 train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
 # scheduler
@@ -142,7 +142,7 @@ for epoch in range(0, epochs):
         optimizer.step()
         preds = torch.argmax(logits, 1).detach()
         # resize to original resolution
-        preds = transforms.functional.resize(preds, y.shape[-2:], antialias=True)
+        preds = transforms.functional.resize(preds, y.shape[-2:], interpolation=transforms.InterpolationMode.NEAREST, antialias=True)
         train_iou.process(preds, y)
         # log the train loss
         if wandb_log:
@@ -179,7 +179,7 @@ for epoch in range(0, epochs):
         val_loss += loss.item()
         preds = torch.argmax(logits, 1)
         # resize to original resolution
-        preds = transforms.functional.resize(preds, y.shape[-2:], antialias=True)
+        preds = transforms.functional.resize(preds, y.shape[-2:], interpolation=transforms.InterpolationMode.NEAREST, antialias=True)
         # log prediction matrix
         val_iou.process(preds, y)
 
