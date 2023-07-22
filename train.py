@@ -19,7 +19,7 @@ from scheduler import LR_Scheduler
 config = {
     "downsize_res": 512,
     "batch_size": 6,
-    "epochs": 50,
+    "epochs": 41,
     "lr": 5e-5,
     "model_architecture": "FCN8",
     "model_config": {
@@ -58,7 +58,7 @@ model = FCN8(num_classes, 0)
 model.to(device)
 # optimizer
 lr = float(config["lr"])
-optimizer = torch.optim.Adam([{"params": model.parameters(), "lr": lr}], weight_decay=5e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 # checkpoints
 save_cp = True
 if save_cp and not os.path.exists("checkpoints/"):
@@ -84,7 +84,7 @@ loader_args = dict(batch_size=batch_size, pin_memory=True, num_workers=3)
 train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
 # scheduler
-scheduler = LR_Scheduler("poly", lr, epochs, len(train_dl))
+# scheduler = LR_Scheduler("poly", lr, epochs, len(train_dl))
 # crossentropy loss fn weights
 weight = torch.tensor([0.8987, 0.4091, 1.5, 0.8886, 0.9643, 1.2, 0.0], device=device)
 # TODO: Implement focal loss from scratch
@@ -129,7 +129,7 @@ for epoch in range(0, epochs):
     pbar = tqdm(total=len(train_ds), desc=f"Train epoch {epoch}/{epochs}", unit="img")
     # training loop
     for batch, (X, y) in enumerate(train_dl):
-        scheduler(optimizer, batch, epoch, best_pred)  # update lr
+        # scheduler(optimizer, batch, epoch, best_pred)  # update lr
         X, y = X.to(device), y.to(device)
         X_down = downsize_input(X)
         y_down = downsize_label(y)
