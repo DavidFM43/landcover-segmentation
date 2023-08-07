@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from dataset import LandcoverDataset, int2str, train_ids, val_ids, test_ids
 from get_key import wandb_key
-from utils import UnNormalize
+from utils import UnNormalize, resize_input, resize_label
 from metrics import IouMetric
 from fcn import FCN8
 from scheduler import LR_Scheduler
@@ -19,7 +19,7 @@ from scheduler import LR_Scheduler
 config = {
     "downsize_res": 512,
     "batch_size": 6,
-    "epochs": 41,
+    "epochs": 30,
     "lr": 5e-5,
     "model_architecture": "FCN8",
     "model_config": {
@@ -39,13 +39,9 @@ torch.backends.cudnn.deterministic = True
 # logging
 wandb_log = True
 wandb_image_size = 800
-wandb_resize_input = transforms.Resize(
-    (wandb_image_size, wandb_image_size), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
-)
-wandb_resize_label = transforms.Resize(
-    (wandb_image_size, wandb_image_size), interpolation=transforms.InterpolationMode.NEAREST, antialias=True
-)
-checkpoint_log_step = 50
+wandb_resize_input = resize_input(wandb_image_size)
+wandb_resize_label = resize_label(wandb_image_size)
+checkpoint_log_step = 30
 log_image_step = 7
 max_log_imgs = 7
 # data
@@ -67,17 +63,13 @@ if save_cp and not os.path.exists("checkpoints/"):
 mean = [0.4085, 0.3798, 0.2822]
 std = [0.1410, 0.1051, 0.0927]
 # transforms
-downsize_input = transforms.Resize(
-    (downsize_res, downsize_res), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
-)
-downsize_label = transforms.Resize(
-    (downsize_res, downsize_res), interpolation=transforms.InterpolationMode.NEAREST, antialias=True
-)
+downsize_input = resize_input(downsize_res)
+downsize_label = resize_label(downsize_res)
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean, std)])
 target_transform = transforms.PILToTensor()
 undo_normalization = UnNormalize(mean, std)
 # datasets
-train_ds = LandcoverDataset(train_ids, transform=transform, target_transform=target_transform, augmentations=True)
+train_ds = LandcoverDataset(train_ids, transform=transform, target_transform=target_transform, augmentations=False)
 valid_ds = LandcoverDataset(val_ids, transform=transform, target_transform=target_transform)
 # dataloaders
 loader_args = dict(batch_size=batch_size, pin_memory=True, num_workers=3)
@@ -97,7 +89,7 @@ if wandb_log:
     wandb.init(
         tags=["FCtl"],
         entity="landcover-classification",
-        notes="",
+        notes="Disable augmentations",
         project="ml-experiments",
         config=dict(
             ce_weights=[round(w.item(), 2) for w in weight],

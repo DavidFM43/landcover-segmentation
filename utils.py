@@ -1,9 +1,13 @@
 import torch
 import torch.nn.functional as F
 import torchvision
+from torchvision import transforms
 from torchvision.utils import draw_segmentation_masks
 from tqdm import tqdm
 
+
+resize_input = lambda size: transforms.Resize((size, size), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True)
+resize_label = lambda size: transforms.Resize((size, size), interpolation=transforms.InterpolationMode.NEAREST, antialias=True)
 
 class UnNormalize(torchvision.transforms.Normalize):
     """Transformation that reverts normalization given original mean and std."""

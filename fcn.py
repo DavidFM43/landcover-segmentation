@@ -36,6 +36,7 @@ class FCN8(nn.Module):
         for layer in self.features:
             if "MaxPool" in layer.__class__.__name__:
                 layer.ceil_mode = True
+                
         # Extract pool3, pool4 and pool5 from the VGG net
         self.pool3 = nn.Sequential(*self.features[:17])
         self.pool4 = nn.Sequential(*self.features[17:24])
@@ -64,14 +65,15 @@ class FCN8(nn.Module):
         # Adjust the depth of pool3 and pool4 to num_classe
         self.adj_pool3 = nn.Conv2d(256, num_classes, kernel_size=1)
         self.adj_pool4 = nn.Conv2d(512, num_classes, kernel_size=1)
+        
         # Replace the FC layer of VGG with conv layers
         conv6 = nn.Conv2d(512, 4096, kernel_size=7)
         conv7 = nn.Conv2d(4096, 4096, kernel_size=1)
         output = nn.Conv2d(4096, num_classes, kernel_size=1)
+        
         # Copy the weights from VGG's FC pretrained layers
         conv6.weight.data.copy_(self.classifier[0].weight.data.view(conv6.weight.data.size()))
         conv6.bias.data.copy_(self.classifier[0].bias.data)
-
         conv7.weight.data.copy_(self.classifier[3].weight.data.view(conv7.weight.data.size()))
         conv7.bias.data.copy_(self.classifier[3].bias.data)
 
@@ -91,10 +93,12 @@ class FCN8(nn.Module):
         self.up_output.weight.data.copy_(get_upsampling_weight(num_classes, num_classes, 4))
         self.up_pool4_out.weight.data.copy_(get_upsampling_weight(num_classes, num_classes, 4))
         self.up_final.weight.data.copy_(get_upsampling_weight(num_classes, num_classes, 16))
+        
         # We'll freeze the wights, this is a fixed upsampling and not deconv
         for m in self.modules():
             if isinstance(m, nn.ConvTranspose2d):
                 m.weight.requires_grad = False
+                
         if freeze_bn:
             self.freeze_bn()
         if freeze_backbone:
@@ -103,6 +107,7 @@ class FCN8(nn.Module):
     def forward(self, x, flag=0, pool5_2=None, pool5_glo=None, y=None):
         imh_H, img_W = x.size()[2], x.size()[3]
         # Forward the image
+        
         pool3 = self.pool3(x)
         pool4 = self.pool4(pool3)
         pool5 = self.pool5(pool4)
@@ -156,6 +161,7 @@ class FCN8(nn.Module):
 
         # Remove the corresponding padded regions to the input img size
         final_value = final_value[:, :, 31 : (31 + imh_H), 31 : (31 + img_W)].contiguous()
+        
         return final_value
 
     def get_backbone_params(self):
