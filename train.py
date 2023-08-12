@@ -13,17 +13,17 @@ from dataset import LandcoverDataset, int2str, train_ids, val_ids, test_ids
 from get_key import wandb_key
 from utils import UnNormalize, resize_input, resize_label
 from metrics import IouMetric
-from fcn import FCN8
-from scheduler import LR_Scheduler
+# from fcn import FCN8
+# from scheduler import LR_Scheduler
 
 config = {
-    "downsize_res": 512,
+    "downsize_res": 1024,
     "batch_size": 6,
-    "epochs": 30,
-    "lr": 5e-5,
-    "model_architecture": "FCN8",
+    "epochs": 40,
+    "lr": 2e-4,
+    "model_architecture": "Unet",
     "model_config": {
-        "encoder_name": "VGG16",
+        "encoder_name": "resnet34",
         "encoder_weights": "imagenet",
         "in_channels": 3,
         "classes": 7,
@@ -41,7 +41,7 @@ wandb_log = True
 wandb_image_size = 800
 wandb_resize_input = resize_input(wandb_image_size)
 wandb_resize_label = resize_label(wandb_image_size)
-checkpoint_log_step = 30
+checkpoint_log_step = 40
 log_image_step = 7
 max_log_imgs = 7
 # data
@@ -50,7 +50,8 @@ batch_size = config["batch_size"]
 epochs = config["epochs"]
 num_classes = 7
 # model
-model = FCN8(num_classes, 0)
+model = smp.Unet(**config["model_config"])
+# model = FCN8(num_classes, 0)
 model.to(device)
 # optimizer
 lr = float(config["lr"])
@@ -69,33 +70,82 @@ transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean
 target_transform = transforms.PILToTensor()
 undo_normalization = UnNormalize(mean, std)
 # datasets
-train_ds = LandcoverDataset(train_ids, transform=transform, target_transform=target_transform, augmentations=False)
+train_ds = LandcoverDataset(train_ids, transform=transform, target_transform=target_transform, augmentations=True)
 valid_ds = LandcoverDataset(val_ids, transform=transform, target_transform=target_transform)
 # dataloaders
-loader_args = dict(batch_size=batch_size, pin_memory=True, num_workers=3)
+loader_args = dict(batch_size=batch_size, pin_memory=True, num_workers=2)
 train_dl = DataLoader(train_ds, shuffle=True, **loader_args)
 valid_dl = DataLoader(valid_ds, shuffle=False, **loader_args)
 # scheduler
 # scheduler = LR_Scheduler("poly", lr, epochs, len(train_dl))
 # crossentropy loss fn weights
 weight = torch.tensor([0.8987, 0.4091, 1.5, 0.8886, 0.9643, 1.2, 0.0], device=device)
+loss_fn = nn.CrossEntropyLoss(weight=weight)
 # TODO: Implement focal loss from scratch
-loss_fn = torch.hub.load("adeelh/pytorch-multi-class-focal-loss", model="FocalLoss", gamma=3, reduction="mean")
+# loss_fn = torch.hub.load("adeelh/pytorch-multi-class-focal-loss", model="FocalLoss", gamma=3, reduction="mean")
+
+
+def update_data_ratio_hook(optimizer, args, kwargs):
+    """Log the update to data ratio of the model parameters for the Adam optimizer"""
+    
+    ratios = []
+    for group in optimizer.param_groups:
+        params_with_grad = []
+        grads = []
+        exp_avgs = []
+        exp_avg_sqs = []
+        max_exp_avg_sqs = []
+        state_steps = []
+        beta1, beta2 = group["betas"]
+
+        # get params, grads, steps, and EMA of grads and squared grads
+        optimizer._init_group(
+            group, params_with_grad, grads, exp_avgs, exp_avg_sqs, max_exp_avg_sqs, state_steps
+        )
+
+        for i, param in enumerate(params_with_grad):
+            grad = grads[i]
+            exp_avg = exp_avgs[i]
+            exp_avg_sq = exp_avg_sqs[i]
+            step_t = state_steps[i]
+
+            with torch.no_grad():
+                # Decay the first and second moment running average coefficient
+                exp_avg = exp_avg.lerp(grad, 1 - beta1)
+                exp_avg_sq = exp_avg_sq.mul(beta2).addcmul(grad, grad.conj(), value=1 - beta2)
+
+                bias_correction1 = 1 - beta1 ** (step_t + 1)
+                bias_correction2 = 1 - beta2 ** (step_t + 1)
+                step_size = lr / bias_correction1
+
+                bias_correction2_sqrt = bias_correction2.sqrt()
+
+                denom = (exp_avg_sq.sqrt() / bias_correction2_sqrt).add(group["eps"])
+
+                update_step = step_size * exp_avg / denom
+
+                # Calculate the ratio between parameter and update step
+                ratio = (update_step.std() / param.data.std()).log10().item()
+            ratios.append(ratio)
+            
+    wandb.log({f"ratio/{name}": ratio for (name, p), ratio in zip(model.named_parameters(), ratios) if p.data.ndim == 4})
+
+optimizer.register_step_pre_hook(update_data_ratio_hook)
 
 
 # log training and data config
 if wandb_log:
     wandb.login(key=wandb_key)
     wandb.init(
-        tags=["FCtl"],
+        tags=["Unet"],
         entity="landcover-classification",
-        notes="Disable augmentations",
+        notes="",
         project="ml-experiments",
         config=dict(
             ce_weights=[round(w.item(), 2) for w in weight],
             optimizer=type(optimizer).__name__,
             loss_fn=type(loss_fn).__name__,
-            num_workers=os.cpu_count(),
+            num_workers=loader_args["num_workers"],
             wandb_size=wandb_image_size,
             **config,
         ),
